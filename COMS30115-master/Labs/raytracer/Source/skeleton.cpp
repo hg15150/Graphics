@@ -24,12 +24,15 @@ struct Intersection
   int triangleIndex;
   };
 
-/* ----------------------------------------------------------------------------*/
-/* FUNCTIONS                                                                   */
+// -----------------------------------------------------------------------------
 
 bool Update();
 void Draw(screen* screen);
 bool ClosestIntersection(vec4 start, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection );
+float calcDistance(vec3 start, vec3 intersection);
+bool xChecker(vec3 x);
+
+// -----------------------------------------------------------------------------
 
 int main( int argc, char* argv[] )
 {
@@ -38,6 +41,9 @@ int main( int argc, char* argv[] )
 
   vec4 start(0,0,0,1);
   vec4 dir(1,0,0,1);
+
+
+
 
   vector<Triangle> triangles;
   LoadTestModel( triangles );
@@ -62,6 +68,9 @@ void Draw(screen* screen)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
+
+  float focalLength = SCREEN_WIDTH/2;
+  vec4 cameraPos(0,0,-3,1)
 
   vec3 colour(1.0,0.0,0.0);
   for(int i=0; i<1000; i++)
@@ -121,29 +130,42 @@ bool xChecker(vec3 x){
 
 bool ClosestIntersection(vec4 s, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection ){
 
+  bool intersectionOccurred = false;
+  closestIntersection.distance = std::numeric_limits<float>::max();
+
   for (size_t i = 0; i < triangles.size(); i++) {
+
+    //Extract triangle vertices
     vec4 v0 = triangles[i].v0;
     vec4 v1 = triangles[i].v1;
     vec4 v2 = triangles[i].v2;
 
+    //Determine axis of the plane that the triangle lies within
     vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
     vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
+
+    //Calculate start of ray - vertex 0
     vec3 b = vec3(s.x-v0.x,s.y-v0.y,s.z-v0.z);
 
+    //Create matrix
     mat3 A( -vec3(dir), e1, e2 );
 
+    //Calculate Intersection
     vec3 x = inverse(A) * b;
 
+    //If Intersection is within triangle, calculate distance
     if(xChecker(x)){
-      cout << "(" << x.x << ", " << x.y << ", " << x.z << ")\n";
+      intersectionOccurred = true; //At least one intersection occurred
+      vec3 start(s.x, s.y, s.z);   //Convert start vector to 3D
+      float distance = glm::distance(start, x);
 
+      //Overwrite closestIntersection
+      if(distance < closestIntersection.distance){
+        closestIntersection.position = vec4(x.x, x.y, x.z, 1);
+        closestIntersection.distance = distance;
+        closestIntersection.triangleIndex = i;
+      }
     }
-
-    else cout << "You ruined it!";
-
-    // cout << "(" << x.x << ", " << x.y << ", " << x.z << ")\n";
-
-
   }
-return false;
+return intersectionOccurred;
 }
