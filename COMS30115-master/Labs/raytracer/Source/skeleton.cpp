@@ -54,8 +54,8 @@ void Draw(screen* screen)
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  float focalLength = SCREEN_HEIGHT;
-  vec4 cameraPos(0,0,-3,1);
+  float focalLength = SCREEN_HEIGHT; //I am not perfectly certain why this works better than SCREEN_WIDTH but it does.
+  vec4 cameraPos(0,0,-3,1);          //This is the start for each ray (backwards raytracing).
 
   vector<Triangle> triangles; //Array of all triangles in the image
   LoadTestModel( triangles );
@@ -66,9 +66,8 @@ void Draw(screen* screen)
 
   for(int i=0; i<SCREEN_WIDTH; i++){
     for (int j = 0; j < SCREEN_HEIGHT; j++) {
-      //Calculate ray direction { d = x - W/2, y - H/2, f}
-      //Calculate start vector
-      // vec4 start(i, j, 0, 1); //Start at each pixel
+
+      //Calculate ray direction { d = x - W/2, y - H/2, f, 1}
       vec4 rayDirection(i - halfScreenWidth, j - halfScreenHeight, focalLength, 1);
 
       //Calculate closestIntersection
