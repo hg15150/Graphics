@@ -57,13 +57,11 @@ void Draw(screen* screen)
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  float focalLength = 0.3;
+  float focalLength = SCREEN_HEIGHT;
   vec4 cameraPos(0,0,-3,1);
 
   vector<Triangle> triangles; //Array of all triangles in the image
   LoadTestModel( triangles );
-
-  vector<Intersection> closestIntersections;  //Array of all closest
 
   //Optimisations to reduce the amount of divisions within loop
   int halfScreenWidth = SCREEN_WIDTH/2;
@@ -73,12 +71,12 @@ void Draw(screen* screen)
     for (int j = 0; j < SCREEN_HEIGHT; j++) {
       //Calculate ray direction { d = x - W/2, y - H/2, f}
       //Calculate start vector
-      vec4 start(i, j, 0, 1); //Start at each pixel
+      // vec4 start(i, j, 0, 1); //Start at each pixel
       vec4 rayDirection(i - halfScreenWidth, j - halfScreenHeight, focalLength, 1);
 
       //Calculate closestIntersection
       Intersection intersection;
-      bool isIntersection = ClosestIntersection(start, rayDirection, triangles, intersection);
+      bool isIntersection = ClosestIntersection(cameraPos, rayDirection, triangles, intersection);
 
       vec3 colour(0.0, 0.0, 0.0); //Set initial colour of pixel to black
 
@@ -173,7 +171,8 @@ bool ClosestIntersection(vec4 s, vec4 dir, const vector<Triangle>& triangles, In
     if(xChecker(x)){
       intersectionOccurred = true; //At least one intersection occurred
       vec3 start(s.x, s.y, s.z);   //Convert start vector to 3D
-      float distance = glm::distance(start, x);
+      // float distance = glm::distance(start, x);
+      float distance = x.x;
 
       //Overwrite closestIntersection
       if(distance < closestIntersection.distance){
