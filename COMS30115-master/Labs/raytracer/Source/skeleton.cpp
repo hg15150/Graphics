@@ -39,11 +39,8 @@ int main( int argc, char* argv[] )
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
 
-  while ( Update())
-    {
-      Draw(screen);
-      SDL_Renderframe(screen);
-    }
+    Draw(screen);
+    SDL_Renderframe(screen);
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
