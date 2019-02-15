@@ -39,23 +39,11 @@ int main( int argc, char* argv[] )
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
 
-  vec4 start(0,0,0,1);
-  vec4 dir(1,0,0,1);
-
-
-
-
-  vector<Triangle> triangles;
-  LoadTestModel( triangles );
-  Intersection closestIntersection;
-
-  ClosestIntersection(start, dir, triangles, closestIntersection);
-
-  // while ( Update())
-  //   {
-  //     Draw(screen);
-  //     SDL_Renderframe(screen);
-  //   }
+  while ( Update())
+    {
+      Draw(screen);
+      SDL_Renderframe(screen);
+    }
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
@@ -69,16 +57,44 @@ void Draw(screen* screen)
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  float focalLength = SCREEN_WIDTH/2;
-  vec4 cameraPos(0,0,-3,1)
+  float focalLength = 0.3;
+  vec4 cameraPos(0,0,-3,1);
 
-  vec3 colour(1.0,0.0,0.0);
-  for(int i=0; i<1000; i++)
-    {
-      uint32_t x = rand() % screen->width;
-      uint32_t y = rand() % screen->height;
-      PutPixelSDL(screen, x, y, colour);
+  vector<Triangle> triangles; //Array of all triangles in the image
+  LoadTestModel( triangles );
+
+  vector<Intersection> closestIntersections;  //Array of all closest
+
+  //Optimisations to reduce the amount of divisions within loop
+  int halfScreenWidth = SCREEN_WIDTH/2;
+  int halfScreenHeight = SCREEN_HEIGHT/2;
+
+  for(int i=0; i<SCREEN_WIDTH; i++){
+    for (int j = 0; j < SCREEN_HEIGHT; j++) {
+      //Calculate ray direction { d = x - W/2, y - H/2, f}
+      //Calculate start vector
+      vec4 start(i, j, 0, 1); //Start at each pixel
+      vec4 rayDirection(i - halfScreenWidth, j - halfScreenHeight, focalLength, 1);
+
+      //Calculate closestIntersection
+      Intersection intersection;
+      bool isIntersection = ClosestIntersection(start, rayDirection, triangles, intersection);
+
+      vec3 colour(0.0, 0.0, 0.0); //Set initial colour of pixel to black
+
+      if(isIntersection){
+        //Get intersected triangle
+        Triangle closestIntersectedTriangle = triangles[intersection.triangleIndex];
+
+        //Set pixel colour to colour of closest intersected triangle
+        colour.x = closestIntersectedTriangle.color.x;
+        colour.y = closestIntersectedTriangle.color.y;
+        colour.z = closestIntersectedTriangle.color.z;
+      }
+
+      PutPixelSDL(screen, i, j, colour);
     }
+  }
 }
 
 /*Place updates of parameters here*/

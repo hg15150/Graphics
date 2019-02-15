@@ -33,31 +33,14 @@ int main( int argc, char* argv[] )
 {
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
-  t = SDL_GetTicks();	/*Set start value for timer.*/
 
-  // vector<float> result( 1 ); // Create a vector width 10 floats
-  // Interpolate( 5, 14, result ); // Fill it with interpolated values
-  // for(unsigned int i=0; i<result.size(); ++i )
-  // cout << result[i] << " "; // Print the result to the terminal
 
-  vector<vec3> result( 4 );
-  vec3 a(1,4,9.2);
-  vec3 b(4,1,9.8);
-  InterpolateVec( a, b, result );
-  for( int i=0; i<result.size(); ++i )
-  {
-    cout << "( "
-    << result[i].x << ", "
-    << result[i].y << ", "
-    << result[i].z << " ) ";
-  }
-
-  // while( NoQuitMessageSDL() )
-  //   {
-  //     Draw(screen);
-  //     Update();
-  //     SDL_Renderframe(screen);
-  //   }
+  while( NoQuitMessageSDL() )
+    {
+      Draw(screen);
+      // Update();
+      SDL_Renderframe(screen);
+    }
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
@@ -71,12 +54,24 @@ void Draw(screen* screen)
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  vec3 colour(30.5,30.5,30.5);
-  for(int i=0; i<1000; i++)
+  vec3 topLeft(1,0,0);     //red
+  vec3 topRight(0,0,1);    //blue
+  vec3 bottomRight(0,1,0); //green
+  vec3 bottomLeft(1,1,0);  //yellow
+
+  vector<vec3> leftSide(SCREEN_HEIGHT);  //Array of colours
+  vector<vec3> rightSide(SCREEN_HEIGHT); //Array of colours
+  InterpolateVec(topLeft, bottomLeft, leftSide);  //Fill in left side
+  InterpolateVec(topRight, bottomRight, rightSide);  //Fill in right side
+
+  vector<vec3> rowToDraw (SCREEN_WIDTH); //Array of colours of row
+
+  for(int i=0; i < SCREEN_HEIGHT; i++)
     {
-      uint32_t x = rand() % screen->width;
-      uint32_t y = rand() % screen->height;
-      PutPixelSDL(screen, x, y, colour);
+      InterpolateVec(leftSide[i], rightSide[i], rowToDraw);
+      for (int j = 0; j < SCREEN_WIDTH; j++) {
+        PutPixelSDL(screen, j, i, rowToDraw[j]);
+      }
     }
 }
 
