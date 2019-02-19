@@ -13,9 +13,16 @@ using glm::mat4;
 
 SDL_Event event;
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 256
-#define FULLSCREEN_MODE false
+// #define SCREEN_WIDTH 320
+// #define SCREEN_HEIGHT 256
+#define SCREEN_WIDTH 80
+#define SCREEN_HEIGHT 64
+
+#define FULLSCREEN_MODE true
+vec4 cameraPos(0,0,-3,1);
+int rotL=0;
+int rotU=0;
+
 
 struct Intersection
   {
@@ -26,11 +33,12 @@ struct Intersection
 
 // -----------------------------------------------------------------------------
 
-bool Update();
-void Draw(screen* screen);
+bool Update(vector<Triangle>& triangles);
+void Draw(screen* screen,vector<Triangle>& triangles);
 bool ClosestIntersection(vec4 start, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection );
 float calcDistance(vec3 start, vec3 intersection);
 bool xChecker(vec3 x);
+void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
 
 // -----------------------------------------------------------------------------
 
@@ -38,9 +46,16 @@ int main( int argc, char* argv[] )
 {
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
+  vector<Triangle> triangles; //Array of all triangles in the image
+  LoadTestModel( triangles );
+    // Draw(screen);
+    // SDL_Renderframe(screen);
+    while ( Update(triangles))
+    {
+      Draw(screen,triangles);
+      SDL_Renderframe(screen);
+    }
 
-    Draw(screen);
-    SDL_Renderframe(screen);
 
   SDL_SaveImage( screen, "screenshot.bmp" );
 
@@ -49,16 +64,15 @@ int main( int argc, char* argv[] )
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen)
+void Draw(screen* screen, vector<Triangle>& triangles)
 {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
   float focalLength = SCREEN_HEIGHT; //I am not perfectly certain why this works better than SCREEN_WIDTH but it does.
-  vec4 cameraPos(0,0,-3,1);          //This is the start for each ray (backwards raytracing).
+            //This is the start for each ray (backwards raytracing).
 
-  vector<Triangle> triangles; //Array of all triangles in the image
-  LoadTestModel( triangles );
+
 
   //Optimisations to reduce the amount of divisions within loop
   int halfScreenWidth = SCREEN_WIDTH/2;
@@ -92,7 +106,7 @@ void Draw(screen* screen)
 }
 
 /*Place updates of parameters here*/
-bool Update()
+bool Update(vector<Triangle>& triangles)
 {
   static int t = SDL_GetTicks();
   /* Compute frame time */
@@ -113,18 +127,37 @@ bool Update()
 	    int key_code = e.key.keysym.sym;
 	    switch(key_code)
 	      {
-	      case SDLK_UP:
+	      case SDLK_w:
+        cameraPos.z = cameraPos.z + 0.2;
 		/* Move camera forward */
 		break;
-	      case SDLK_DOWN:
+	      case SDLK_s:
+        cameraPos.z = cameraPos.z - 0.2;
 		/* Move camera backwards */
 		break;
-	      case SDLK_LEFT:
+	      case SDLK_a:
+        cameraPos.x = cameraPos.x - 0.2;
 		/* Move camera left */
 		break;
-	      case SDLK_RIGHT:
+	      case SDLK_d:
+        cameraPos.x = cameraPos.x + 0.2;
+    break;
+        case SDLK_UP:
+        rotateCamera(vec4 (0.785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
+           /* Move camera forward */
+    break;
+      case SDLK_DOWN:
+      //rotU = rotU-5;
+
+         /* Move camera backwards */
+    break;
+      case SDLK_LEFT:
+/* Move camera left */
+   break;
+      case SDLK_RIGHT:
+         /* Move camera right */
+    break;
 		/* Move camera right */
-		break;
 	      case SDLK_ESCAPE:
 		/* Move camera quit */
 		return false;
@@ -132,6 +165,30 @@ bool Update()
 	  }
     }
   return true;
+}
+
+void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
+  for (size_t i = 0; i < triangles.size(); i++) {
+
+    //Extract triangle vertices
+    float x = rotation.x;
+    float y = rotation.y;
+    float z = rotation.z;
+
+    vec4 col1(cos(y)*cos(z), cos(y)*sin(z),-sin(y),0);
+    vec4 col2(-cos(x)*sin(z)+sin(x)*sin(y)*cos(z),cos(x)*cos(z)+sin(x)*sin(y)*sin(z),sin(x)*cos(y),0);
+    vec4 col3(sin(x)*sin(z)+cos(x)*sin(y)*cos(z),-sin(x)*cos(z)+cos(x)*sin(y)*sin(z),cos(x)*cos(y),0);
+
+
+    mat4 rotationMatrix(col1,col2,col3,translation);
+
+    triangles[i].v0 = rotationMatrix*triangles[i].v0;
+    triangles[i].v1 = rotationMatrix*triangles[i].v1;
+    triangles[i].v2 = rotationMatrix*triangles[i].v2;
+
+
+  }
+
 }
 
 bool xChecker(vec3 x){
