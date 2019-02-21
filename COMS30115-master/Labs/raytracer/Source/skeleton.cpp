@@ -15,13 +15,16 @@ SDL_Event event;
 
 // #define SCREEN_WIDTH 320
 // #define SCREEN_HEIGHT 256
-#define SCREEN_WIDTH 80
-#define SCREEN_HEIGHT 64
+#define SCREEN_WIDTH 160
+#define SCREEN_HEIGHT 128
 
 #define FULLSCREEN_MODE true
 vec4 cameraPos(0,0,-3,1);
 int rotL=0;
 int rotU=0;
+
+vec4 lightPos( 0, -0.5, -0.7, 1.0 );
+vec3 lightColor = 14.f * vec3( 1, 1, 1 );
 
 
 struct Intersection
@@ -31,12 +34,15 @@ struct Intersection
   int triangleIndex;
   };
 
+//Intersection* Intersections = NULL;
+
 // -----------------------------------------------------------------------------
 
 bool Update(vector<Triangle>& triangles);
 void Draw(screen* screen,vector<Triangle>& triangles);
 bool ClosestIntersection(vec4 start, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection );
 float calcDistance(vec3 start, vec3 intersection);
+vec3 DirectLight( const Intersection& i, vector<Triangle>& triangles);
 bool xChecker(vec3 x);
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
 
@@ -48,6 +54,7 @@ int main( int argc, char* argv[] )
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   vector<Triangle> triangles; //Array of all triangles in the image
   LoadTestModel( triangles );
+  //Intersections =  (Intersection*)malloc(sizeof(Intersection) * (SCREEN_WIDTH*SCREEN_HEIGHT));
     // Draw(screen);
     // SDL_Renderframe(screen);
     while ( Update(triangles))
@@ -87,6 +94,11 @@ void Draw(screen* screen, vector<Triangle>& triangles)
       //Calculate closestIntersection
       Intersection intersection;
       bool isIntersection = ClosestIntersection(cameraPos, rayDirection, triangles, intersection);
+      //Intersections[j + i*SCREEN_WIDTH] = intersection;
+      vec3 brightness(0.0, 0.0, 0.0);
+      if(intersection.triangleIndex<triangles.size()){
+      brightness = DirectLight(intersection,triangles);
+}
 
       vec3 colour(0.0, 0.0, 0.0); //Set initial colour of pixel to black
 
@@ -95,9 +107,12 @@ void Draw(screen* screen, vector<Triangle>& triangles)
         Triangle closestIntersectedTriangle = triangles[intersection.triangleIndex];
 
         //Set pixel colour to colour of closest intersected triangle
-        colour.x = closestIntersectedTriangle.color.x;
-        colour.y = closestIntersectedTriangle.color.y;
-        colour.z = closestIntersectedTriangle.color.z;
+        // colour.x = closestIntersectedTriangle.color.x;
+        // colour.y = closestIntersectedTriangle.color.y;
+        // colour.z = closestIntersectedTriangle.color.z;
+        colour.x = brightness.x;
+        colour.y = brightness.y;
+        colour.z = brightness.z;
       }
 
       PutPixelSDL(screen, i, j, colour);
@@ -108,11 +123,11 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 /*Place updates of parameters here*/
 bool Update(vector<Triangle>& triangles)
 {
-  static int t = SDL_GetTicks();
-  /* Compute frame time */
-  int t2 = SDL_GetTicks();
-  float dt = float(t2-t);
-  t = t2;
+  // static int t = SDL_GetTicks();
+  // /* Compute frame time */
+  // int t2 = SDL_GetTicks();
+  // float dt = float(t2-t);
+  // t = t2;
 
   SDL_Event e;
   while(SDL_PollEvent(&e))
@@ -128,34 +143,39 @@ bool Update(vector<Triangle>& triangles)
 	    switch(key_code)
 	      {
 	      case SDLK_w:
-        cameraPos.z = cameraPos.z + 0.2;
+        rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,-0.1f,1.f));
 		/* Move camera forward */
 		break;
 	      case SDLK_s:
-        cameraPos.z = cameraPos.z - 0.2;
-		/* Move camera backwards */
+  rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.1f,1.f));		/* Move camera backwards */
 		break;
 	      case SDLK_a:
-        cameraPos.x = cameraPos.x - 0.2;
+        rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.1f,0.f,0.f,1.f));		/* Move camera backwards */
 		/* Move camera left */
 		break;
 	      case SDLK_d:
-        cameraPos.x = cameraPos.x + 0.2;
+        rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (-0.1f,0.f,0.f,1.f));		/* Move camera backwards */
+
     break;
         case SDLK_UP:
-        rotateCamera(vec4 (0.785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
+        //lightPos.z--;
+         rotateCamera(vec4 (0.0785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
            /* Move camera forward */
     break;
       case SDLK_DOWN:
-      //rotU = rotU-5;
+      //lightPos.z++;
+      rotateCamera(vec4 (-0.0785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
 
          /* Move camera backwards */
     break;
       case SDLK_LEFT:
+      rotateCamera(vec4 (0.f,-0.0785398f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f
+      //lightPos.x++;
 /* Move camera left */
    break;
       case SDLK_RIGHT:
-         /* Move camera right */
+      //lightPos.x--;
+      rotateCamera(vec4 (0.f,0.0785398f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
     break;
 		/* Move camera right */
 	      case SDLK_ESCAPE:
@@ -166,6 +186,17 @@ bool Update(vector<Triangle>& triangles)
     }
   return true;
 }
+
+vec3 DirectLight( const Intersection& i, vector<Triangle>& triangles){
+  // printf("Intersection value = %d\n",i.triangleIndex );
+  vec4 normal = triangles[i.triangleIndex].normal; //Surface normal
+  float r = glm::distance(lightPos, i.position); //Distance from light source to Intersection
+   vec4 reflection = (lightPos - i.position) / r; //Unit vector of reflection
+
+   return ((lightColor * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
+
+}
+
 
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
   for (size_t i = 0; i < triangles.size(); i++) {
@@ -201,6 +232,7 @@ bool ClosestIntersection(vec4 s, vec4 dir, const vector<Triangle>& triangles, In
   closestIntersection.distance = std::numeric_limits<float>::max();
 
   for (size_t i = 0; i < triangles.size(); i++) {
+    // closestIntersection.triangleIndex = -1;
 
     //Extract triangle vertices
     vec4 v0 = triangles[i].v0;
@@ -229,11 +261,12 @@ bool ClosestIntersection(vec4 s, vec4 dir, const vector<Triangle>& triangles, In
 
       //Overwrite closestIntersection
       if(distance < closestIntersection.distance){
-        closestIntersection.position = vec4(x.x, x.y, x.z, 1);
+        closestIntersection.position =  s + distance*dir;
         closestIntersection.distance = distance;
         closestIntersection.triangleIndex = i;
       }
     }
   }
+
 return intersectionOccurred;
 }
