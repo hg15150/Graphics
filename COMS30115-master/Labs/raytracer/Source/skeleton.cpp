@@ -204,26 +204,28 @@ vec3 DirectLight( const Intersection& i, vector<Triangle>& triangles){
 
 
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
+  float x = rotation.x;
+  float y = rotation.y;
+  float z = rotation.z;
+  vec4 col1(cos(y)*cos(z), cos(y)*sin(z),-sin(y),0);
+  vec4 col2(-cos(x)*sin(z)+sin(x)*sin(y)*cos(z),cos(x)*cos(z)+sin(x)*sin(y)*sin(z),sin(x)*cos(y),0);
+  vec4 col3(sin(x)*sin(z)+cos(x)*sin(y)*cos(z),-sin(x)*cos(z)+cos(x)*sin(y)*sin(z),cos(x)*cos(y),0);
+
+
+  mat4 rotationMatrix(col1,col2,col3,translation);
   for (size_t i = 0; i < triangles.size(); i++) {
 
     //Extract triangle vertices
-    float x = rotation.x;
-    float y = rotation.y;
-    float z = rotation.z;
-
-    vec4 col1(cos(y)*cos(z), cos(y)*sin(z),-sin(y),0);
-    vec4 col2(-cos(x)*sin(z)+sin(x)*sin(y)*cos(z),cos(x)*cos(z)+sin(x)*sin(y)*sin(z),sin(x)*cos(y),0);
-    vec4 col3(sin(x)*sin(z)+cos(x)*sin(y)*cos(z),-sin(x)*cos(z)+cos(x)*sin(y)*sin(z),cos(x)*cos(y),0);
 
 
-    mat4 rotationMatrix(col1,col2,col3,translation);
+
 
     triangles[i].v0 = rotationMatrix*triangles[i].v0;
     triangles[i].v1 = rotationMatrix*triangles[i].v1;
     triangles[i].v2 = rotationMatrix*triangles[i].v2;
-
-
   }
+  lightPos = rotationMatrix*lightPos;
+
 }
 
 bool xChecker(vec3 x){
