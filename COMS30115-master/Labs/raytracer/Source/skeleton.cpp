@@ -110,9 +110,10 @@ void Draw(screen* screen, vector<Triangle>& triangles)
         // colour.x = closestIntersectedTriangle.color.x;
         // colour.y = closestIntersectedTriangle.color.y;
         // colour.z = closestIntersectedTriangle.color.z;
-        colour.x = brightness.x;
-        colour.y = brightness.y;
-        colour.z = brightness.z;
+        colour.x = brightness.x*closestIntersectedTriangle.color.x;
+        colour.y = brightness.y*closestIntersectedTriangle.color.y;
+        colour.z = brightness.z*closestIntersectedTriangle.color.z;
+
       }
 
       PutPixelSDL(screen, i, j, colour);
