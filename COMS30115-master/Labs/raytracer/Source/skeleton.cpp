@@ -94,10 +94,13 @@ void Draw(screen* screen, vector<Triangle>& triangles)
       bool isIntersection = ClosestIntersection(cameraPos, rayDirection, triangles, intersection);
       //Intersections[j + i*SCREEN_WIDTH] = intersection;
       vec3 brightness(0.0, 0.0, 0.0);
+      vec3 indirectLight = 0.2f*vec3( 1, 1, 1 );
 
       if(intersection.triangleIndex < (float) triangles.size()){
         brightness = DirectLight(intersection,triangles);
       }
+
+      brightness += indirectLight;
 
       vec3 colour(0.0, 0.0, 0.0); //Set initial colour of pixel to black
 
@@ -109,9 +112,10 @@ void Draw(screen* screen, vector<Triangle>& triangles)
         // colour.x = closestIntersectedTriangle.color.x;
         // colour.y = closestIntersectedTriangle.color.y;
         // colour.z = closestIntersectedTriangle.color.z;
-        colour.x = brightness.x*closestIntersectedTriangle.color.x;
-        colour.y = brightness.y*closestIntersectedTriangle.color.y;
-        colour.z = brightness.z*closestIntersectedTriangle.color.z;
+        colour = brightness*closestIntersectedTriangle.color;
+        // colour.x = brightness.x*closestIntersectedTriangle.color.x;
+        // colour.y = brightness.y*closestIntersectedTriangle.color.y;
+        // colour.z = brightness.z*closestIntersectedTriangle.color.z;
 
       }
 
