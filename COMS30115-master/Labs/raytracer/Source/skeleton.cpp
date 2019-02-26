@@ -15,8 +15,8 @@ SDL_Event event;
 
 // #define SCREEN_WIDTH 320
 // #define SCREEN_HEIGHT 256
-#define SCREEN_WIDTH 160
-#define SCREEN_HEIGHT 128
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 512
 
 #define FULLSCREEN_MODE true
 vec4 cameraPos(0,0,-3,1);
@@ -169,7 +169,7 @@ bool Update(vector<Triangle>& triangles)
          /* Move camera backwards */
     break;
       case SDLK_LEFT:
-      rotateCamera(vec4 (0.f,-0.0785398f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f
+      rotateCamera(vec4 (0.f,-0.0785398f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
       //lightPos.x++;
 /* Move camera left */
    break;
