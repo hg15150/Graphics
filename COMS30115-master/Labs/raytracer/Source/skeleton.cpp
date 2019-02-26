@@ -79,8 +79,6 @@ void Draw(screen* screen, vector<Triangle>& triangles)
   float focalLength = SCREEN_HEIGHT; //I am not perfectly certain why this works better than SCREEN_WIDTH but it does.
             //This is the start for each ray (backwards raytracing).
 
-
-
   //Optimisations to reduce the amount of divisions within loop
   int halfScreenWidth = SCREEN_WIDTH/2;
   int halfScreenHeight = SCREEN_HEIGHT/2;
@@ -96,9 +94,10 @@ void Draw(screen* screen, vector<Triangle>& triangles)
       bool isIntersection = ClosestIntersection(cameraPos, rayDirection, triangles, intersection);
       //Intersections[j + i*SCREEN_WIDTH] = intersection;
       vec3 brightness(0.0, 0.0, 0.0);
-      if(intersection.triangleIndex<triangles.size()){
-      brightness = DirectLight(intersection,triangles);
-}
+
+      if(intersection.triangleIndex < (float) triangles.size()){
+        brightness = DirectLight(intersection,triangles);
+      }
 
       vec3 colour(0.0, 0.0, 0.0); //Set initial colour of pixel to black
 
@@ -189,12 +188,17 @@ bool Update(vector<Triangle>& triangles)
 }
 
 vec3 DirectLight( const Intersection& i, vector<Triangle>& triangles){
-  // printf("Intersection value = %d\n",i.triangleIndex );
-  vec4 normal = triangles[i.triangleIndex].normal; //Surface normal
-  float r = glm::distance(lightPos, i.position); //Distance from light source to Intersection
-   vec4 reflection = (lightPos - i.position) / r; //Unit vector of reflection
+   // printf("Intersection value = %d\n",i.triangleIndex );
+   vec4 normal = triangles[i.triangleIndex].normal; //Surface normal
+   float r = glm::distance(lightPos, i.position);   //Distance from light source to Intersection
+   vec4 reflection = (lightPos - i.position) / r;  //Unit vector of reflection
 
-   return ((lightColor * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
+   Intersection newIntersection;
+   bool isIntersection = ClosestIntersection(i.position + (reflection/1000.f), reflection, triangles, newIntersection);
+
+   if(r > newIntersection.distance && isIntersection) return vec3(0,0,0);
+
+   else return ((lightColor * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
 
 }
 
@@ -220,7 +224,6 @@ void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
 
 
   }
-
 }
 
 bool xChecker(vec3 x){
