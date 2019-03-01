@@ -22,6 +22,7 @@ SDL_Event event;
 vec4 cameraPos( 0, 0, 0, 1 );
 vec4 cameraPosM( 0, 0, 3.001, 0 );
 
+
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
@@ -32,9 +33,11 @@ void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
 void DrawLineSDL( screen* screen, ivec2 a, ivec2 b, vec3 color, vector<ivec2>& line);
 void DrawPolygonEdges( const vector<vec4>& vertices , screen* screen );
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
-void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels );
+void ComputePolygonRows(vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels );
 void RowChecker(ivec2& check, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels, int height );
 int GenerateEdge(ivec2 a, ivec2 b, vector<ivec2>& line);
+void DrawRows( vector<ivec2>& leftPixels, vector<ivec2>& rightPixels, vec3 colour );
+void DrawPolygon( vector<vec4>& vertices, vec3 colour,  screen* screen );
 
 
 int main( int argc, char* argv[] ){
@@ -69,32 +72,14 @@ void Draw(screen* screen, vector<Triangle> triangles){
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
-  // for( uint32_t i=0; i<triangles.size(); ++i ){
-  //   vector<vec4> vertices(3);
-  //   vertices[0] = triangles[i].v0;
-  //   vertices[1] = triangles[i].v1;
-  //   vertices[2] = triangles[i].v2;
-  //
-  //   vector<vector<ivec2>> edgePixels;
-  //
-  //   DrawPolygonEdges( vertices, screen, edgePixels );
-  // }
-  vector<ivec2> vertexPixels(3);
-  vertexPixels[0] = ivec2(10, 5);
-  vertexPixels[1] = ivec2( 5,10);
-  vertexPixels[2] = ivec2(15,15);
-  vector<ivec2> leftPixels;
-  vector<ivec2> rightPixels;
+  for( uint32_t i=0; i<triangles.size(); ++i ){
+    vector<vec4> vertices(3);
+    vertices[0] = triangles[i].v0;
+    vertices[1] = triangles[i].v1;
+    vertices[2] = triangles[i].v2;
 
-  ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
-
-  for( size_t row=0; row<leftPixels.size(); ++row ){
-    cout << "Start: ("
-    << leftPixels[row].x << ","
-    << leftPixels[row].y << "). "
-    << "End: ("
-    << rightPixels[row].x << ","
-    << rightPixels[row].y << "). " << endl;
+    // DrawPolygonEdges( vertices, screen );
+    DrawPolygon(vertices, triangles[i].color, screen);
   }
 
 }
@@ -220,7 +205,6 @@ int GenerateEdge(ivec2 a, ivec2 b, vector<ivec2>& line){
 void DrawPolygonEdges( const vector<vec4>& vertices, screen* screen){
 
   for (unsigned int v = 0; v < vertices.size(); v++) {
-    ivec2 projPos;
     ivec2 a;
     ivec2 b;
 
@@ -233,7 +217,7 @@ void DrawPolygonEdges( const vector<vec4>& vertices, screen* screen){
   }
 }
 
-void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels ){
+void ComputePolygonRows(vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels ){
 
   // 1.
   int height = 0;
@@ -274,4 +258,31 @@ void RowChecker(ivec2& check, vector<ivec2>& leftPixels, vector<ivec2>& rightPix
   int tmpY = y - lowestY;
   if(x < leftPixels[tmpY].x) leftPixels[tmpY].x = x;
   if(x > rightPixels[tmpY].x) rightPixels[tmpY].x = x;
+}
+
+void DrawRows( vector<ivec2>& leftPixels, vector<ivec2>& rightPixels, vec3 colour, screen* screen ){
+  for (size_t i = 0; i < leftPixels.size(); i++) {
+    vector<ivec2> line;
+    Interpolate(leftPixels[i], rightPixels[i], line);
+    for (size_t j = 0; j < line.size(); j++) {
+      PutPixelSDL( screen, line[j].x, line[j].y, colour );
+    }
+  }
+}
+
+void DrawPolygon( vector<vec4>& vertices, vec3 colour, screen* screen){
+  int V = vertices.size();
+
+  vector<ivec2> vertexPixels(V);
+
+  for (int i = 0; i < V; i++) {
+    VertexShader(vertices[i], vertexPixels[i]);
+  }
+
+  printf("%d %d\n", vertices[0].x, vertices[0].y );
+
+  vector<ivec2> leftPixels;
+  vector<ivec2> rightPixels;
+  ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
+  DrawRows( leftPixels, rightPixels, colour, screen );
 }
