@@ -30,17 +30,14 @@ bool Update(vector<Triangle>& triangles);
 void Draw(screen* screen, vector<Triangle> triangles);
 void VertexShader( const vec4& v, ivec2& p );
 void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result );
-void DrawLineSDL( screen* screen, ivec2 a, ivec2 b, vec3 color, vector<ivec2>& line);
-void DrawPolygonEdges( const vector<vec4>& vertices , screen* screen );
+void DrawLineSDL( SDL_Surface* surface, ivec2 a, ivec2 b, vec3 color );
+void DrawPolygon( const vector<vec4>& vertices , screen* screen, vec3 color);
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
-void ComputePolygonRows(vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels );
-void RowChecker(ivec2& check, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels, int height );
-int GenerateEdge(ivec2 a, ivec2 b, vector<ivec2>& line);
-void DrawRows( vector<ivec2>& leftPixels, vector<ivec2>& rightPixels, vec3 colour );
-void DrawPolygon( vector<vec4>& vertices, vec3 colour,  screen* screen );
+void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels );
+void DrawRows( const vector<ivec2>& leftPixels,const vector<ivec2>& rightPixels, screen* screen , vec3 color);
 
-
-int main( int argc, char* argv[] ){
+int main( int argc, char* argv[] )
+{
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
 
@@ -70,16 +67,15 @@ int main( int argc, char* argv[] ){
 void Draw(screen* screen, vector<Triangle> triangles){
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-
   for( uint32_t i=0; i<triangles.size(); ++i ){
     vector<vec4> vertices(3);
     vertices[0] = triangles[i].v0;
     vertices[1] = triangles[i].v1;
     vertices[2] = triangles[i].v2;
+    vec3 color = triangles[i].color;
 
+    DrawPolygon( vertices, screen, color );
 
-    // DrawPolygonEdges( vertices, screen );
-    DrawPolygon(vertices, triangles[i].color, screen);
   }
 
 }
@@ -188,8 +184,8 @@ void Interpolate( ivec2 a, ivec2 b, vector<ivec2>& result ){
 void DrawLineSDL( screen* screen, ivec2 a, ivec2 b, vec3 color, vector<ivec2>& line){
   long pixels = GenerateEdge(a, b, line);
 
-  for (long j = 0; j < pixels; j++) {
-    vec3 color(1,1,1);
+  for (int j = 0; j < pixels; j++) {
+    //vec3 color(1,1,1);
     PutPixelSDL( screen, line[j].x, line[j].y, color );
   }
 }
@@ -202,63 +198,88 @@ int GenerateEdge(ivec2 a, ivec2 b, vector<ivec2>& line){
   return pixels;
 }
 
-void DrawPolygonEdges( const vector<vec4>& vertices, screen* screen){
-
+void DrawPolygon( const vector<vec4>& vertices, screen* screen, vec3 color){
+  vector<ivec2> vertexPixels( vertices.size() );
   for (unsigned int v = 0; v < vertices.size(); v++) {
-    ivec2 a;
-    ivec2 b;
+    // ivec2 projPos;
+    // ivec2 a;
+    // ivec2 b;
 
-    VertexShader( vertices[v], a);
-    VertexShader( vertices[(v+1)%3], b);
-    vec3 colour(1,1,1);
-    vector<ivec2> line;
+    VertexShader( vertices[v], vertexPixels[v]);
+    //VertexShader( vertices[(v+1)%3], b);
 
-    DrawLineSDL(screen, a, b, colour, line);
+    //DrawLineSDL(screen, a, b, colour);
+  }
+  vector<ivec2> leftPixels;
+  vector<ivec2> rightPixels;
+  ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
+  DrawRows(leftPixels,rightPixels,screen,color);
+
+
+
+
+}
+
+void DrawRows( const vector<ivec2>& leftPixels,const vector<ivec2>& rightPixels,screen* screen, vec3 color ){
+  for(int i = 0; i<leftPixels.size(); i++){
+    DrawLineSDL(screen, leftPixels[i], rightPixels[i], color);
   }
 }
 
-void ComputePolygonRows(vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels ){
 
-  // 1.
-  unsigned int height = 0;
-  unsigned int lowestY = +numeric_limits<int>::max();;
+void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels ){
 
+  int highestY = 0;
+  int lowestY = +numeric_limits<int>::max();
+  //
   for (size_t j = 0; j < vertexPixels.size(); j++) {
-    unsigned int temp = glm::abs(vertexPixels[j].y - vertexPixels[(j+1) % 3].y);
-    if(height < temp) height = temp;
+    // int temp = glm::abs(vertexPixels[j].y - vertexPixels[(j+1) % 3].y);
+    // if(height < temp) height = temp;
+    // if(lowestY < vertexPixels[j].y) lowestY = vertexPixels[j].y;
     if(lowestY > vertexPixels[j].y) lowestY = vertexPixels[j].y;
+    if(highestY < vertexPixels[j].y) highestY = vertexPixels[j].y;
+
   }
 
-  height++;
+  int numOfRows = highestY - lowestY + 1;
+
+  leftPixels = vector<ivec2>(numOfRows);
+  rightPixels = vector<ivec2>(numOfRows);
 
 
-  // 2.
-  leftPixels = vector<ivec2>(height);
-  rightPixels = vector<ivec2>(height);
-
-  // 3.
-  for (int i = 0; i < height; i++) {
+  for (int i = 0; i < numOfRows; i++) {
     leftPixels[i].x = +numeric_limits<int>::max();
-    leftPixels[i].y = i + lowestY;
+    //leftPixels[i].y = lowestY + i;
     rightPixels[i].x = -numeric_limits<int>::max();
-    rightPixels[i].y = i + lowestY;
+    //rightPixels[i].y = lowestY + i;
   }
 
-  for (size_t i = 0; i < 3; i++) {
-    vector<ivec2> line;
-    GenerateEdge(vertexPixels[i], vertexPixels[(i+1) % 3], line);
-    for (long k = 0; k < line.size(); k++) {
-      RowChecker(line[k], leftPixels, rightPixels, lowestY);
-    }
+  std::vector<ivec2> result(numOfRows);
+
+for (int i=0; i<vertexPixels.size(); i++){
+  Interpolate( vertexPixels[i], vertexPixels[(i+1)%vertexPixels.size()], result);
+
+  for(int j=0;j < result.size();j++){
+    int y = (result[j].y)%numOfRows;
+    if(leftPixels[y].x > result[j].x) leftPixels[y] = result[j];
+    if(rightPixels[y].x < result[j].x) rightPixels[y] = result[j];
+
+
   }
 }
 
-void RowChecker(ivec2& check, vector<ivec2>& leftPixels, vector<ivec2>& rightPixels, int lowestY ){
-  int x = check.x;
-  int y = check.y;
-  int tmpY = y - lowestY;
-  if(x < leftPixels[tmpY].x) leftPixels[tmpY].x = x;
-  if(x > rightPixels[tmpY].x) rightPixels[tmpY].x = x;
+  // for (unsigned int i = 0; i < polygonEdges.size(); i++) {
+  //   for (unsigned j = 0; j < polygonEdges[i].size(); j++) {
+  //     for(unsigned k = 0; k < leftPixels.size(); k++){
+  //       int tmpX = polygonEdges[i][j].x;
+  //       int tmpY = polygonEdges[i][j].y;
+  //       int tmpIndex = tmpY-height;
+  //       if(tmpX > leftPixels[tmpIndex].x) leftPixels[tmpIndex].x   = tmpX;
+  //       if(tmpX < rightPixels[tmpIndex].x) rightPixels[tmpIndex].x = tmpX;
+  //     }
+  //   }
+  // }
+
 }
 
 void DrawRows( vector<ivec2>& leftPixels, vector<ivec2>& rightPixels, vec3 colour, screen* screen ){
