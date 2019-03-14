@@ -203,7 +203,6 @@ vec3 DirectLight( const Intersection& i, vector<Triangle>& triangles){
    if(r > newIntersection.distance && isIntersection) return vec3(0,0,0);
 
    else return ((lightColor * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
-
 }
 
 
