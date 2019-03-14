@@ -21,25 +21,43 @@ SDL_Event event;
 #define FOCAL_LENGTH SCREEN_HEIGHT/2
 vec4 cameraPos( 0, 0, 3.001, 0 );
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+vec4 lightPos(0,-0.5,2.7, 1);
+vec3 lightPower = 10.0f*vec3( 1, 1, 1 );
+vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
+
+mat4 R(
+   vec4(1,0,0,0) ,
+   vec4(0,1,0,0) ,
+   vec4(0,0,1,0) ,
+   cameraPos
+);
 
 struct Pixel
-  {
+{
   ivec2 position;
   float depth;
-  };
+  vec3 illumination;
+};
+
+struct Vertex
+{
+  vec4 position;
+  vec4 normal;
+  vec3 colour;
+};
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
 bool Update(vector<Triangle>& triangles);
 void Draw(screen* screen, vector<Triangle> triangles);
-void VertexShader( const vec4& v, Pixel& p );
+void VertexShader( Vertex& v, Pixel& p );
 void Interpolate( Pixel a, Pixel b, vector<Pixel>& result );
 void DrawLineSDL( screen* surface, Pixel a, Pixel b, vec3 color );
-void DrawPolygon( const vector<vec4>& vertices , screen* screen, vec3 color);
+void DrawPolygon(  vector<Vertex>& vertices , screen* screen, vec3 color);
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
-void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels );
-void DrawRows( const vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels, screen* screen , vec3 color);
+void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels );
+void DrawRows(  vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels, screen* screen , vec3 color);
 
 int main( int argc, char* argv[] )
 {
@@ -81,10 +99,15 @@ void Draw(screen* screen, vector<Triangle> triangles){
 
 
   for( uint32_t i=0; i<triangles.size(); ++i ){
-    vector<vec4> vertices(3);
-    vertices[0] = triangles[i].v0;
-    vertices[1] = triangles[i].v1;
-    vertices[2] = triangles[i].v2;
+    vector<Vertex> vertices(3);
+    vertices[0].position = triangles[i].v0;
+    vertices[1].position = triangles[i].v1;
+    vertices[2].position = triangles[i].v2;
+
+    vertices[0].normal = triangles[i].normal;
+    vertices[1].normal = triangles[i].normal;
+    vertices[2].normal = triangles[i].normal;
+
     vec3 color = triangles[i].color;
 
     DrawPolygon( vertices, screen, color );
@@ -93,7 +116,7 @@ void Draw(screen* screen, vector<Triangle> triangles){
 
 }
 
-void DrawPolygon( const vector<vec4>& vertices, screen* screen, vec3 color){
+void DrawPolygon( vector<Vertex>& vertices, screen* screen, vec3 color){
   vector<Pixel> vertexPixels( vertices.size() );
 
   for (unsigned int v = 0; v < vertices.size(); v++) {
@@ -107,14 +130,20 @@ void DrawPolygon( const vector<vec4>& vertices, screen* screen, vec3 color){
   DrawRows(leftPixels,rightPixels,screen,color);
 }
 
-void VertexShader( const vec4& v, Pixel& p ){
-  vec4 copyV = v+cameraPos;
-  p.position.x = FOCAL_LENGTH * (copyV.x / copyV.z) + SCREEN_WIDTH/2;
-  p.position.y = FOCAL_LENGTH * (copyV.y / copyV.z) + SCREEN_HEIGHT/2;
-  p.depth = 1/copyV.z;
+void VertexShader( Vertex& v, Pixel& p ){
+   Vertex copyV { R * v.position };
+   p.position.x = FOCAL_LENGTH * (copyV.position.x / copyV.position.z) + SCREEN_WIDTH/2;
+   p.position.y = FOCAL_LENGTH * (copyV.position.y / copyV.position.z) + SCREEN_HEIGHT/2;
+   p.depth = 1/copyV.position.z;
+
+   float r = glm::distance(lightPos, v.position);   //Distance from light source to vertex
+   vec4 reflection = (lightPos - v.position) / r;  //Unit vector of reflection
+   p.illumination = ((lightPower * max(dot(reflection, v.normal), 1.f)) / (float)(4*3.1415*pow(r,2)));
+
+
 }
 
-void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels ){
+void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels ){
 
   int highestY = 0;
   int lowestY = +numeric_limits<int>::max();
@@ -155,16 +184,23 @@ void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
 
   float depthStep = (b.depth-a.depth) / float(max(N-1,1));
 
+  vec3 illuminationStep = ((b.illumination - a.illumination)/ float(max(N-1,1)));
+
   vec2 current( a.position );
+  vec3 currentIllumination( a.illumination );
+
+
   for( int i=0; i<N; ++i ){
     result[i].position = round(current);
     current += step;
     result[i].depth = a.depth+i*depthStep;
+    result[i].illumination = currentIllumination;
+    currentIllumination += illuminationStep;
 
   }
 }
 
-void DrawRows( const vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels,screen* screen, vec3 color ){
+void DrawRows(  vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels,screen* screen, vec3 color ){
   for(unsigned int i = 0; i < leftPixels.size(); i++){
     DrawLineSDL(screen, leftPixels[i], rightPixels[i], color);
   }
@@ -180,7 +216,7 @@ void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color ){
     if(depthBuffer[line[i].position.y][line[i].position.x] < line[i].depth){
 
       depthBuffer[line[i].position.y][line[i].position.x] = line[i].depth;
-      PutPixelSDL( screen, line[i].position.x, line[i].position.y, color );
+      PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*line[i].illumination );
     }
   }
 }
@@ -261,7 +297,6 @@ void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
 
   mat4 rotationMatrix(col1,col2,col3,translation);
   for (size_t i = 0; i < triangles.size(); i++) {
-
 
     triangles[i].v0 = rotationMatrix*triangles[i].v0;
     triangles[i].v1 = rotationMatrix*triangles[i].v1;
