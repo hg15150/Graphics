@@ -21,8 +21,8 @@ SDL_Event event;
 #define FOCAL_LENGTH SCREEN_HEIGHT/2
 vec4 cameraPos( 0, 0, 3.001, 0 );
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
-vec4 lightPos(0,-0.5,2.7, 1);
-vec3 lightPower = 10.0f*vec3( 1, 1, 1 );
+vec4 lightPos(0,-0.5,-0.7, 1);
+vec3 lightPower = 5.1f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
 
 mat4 R(
@@ -67,13 +67,6 @@ int main( int argc, char* argv[] )
   vector<Triangle> triangles;
   LoadTestModel( triangles );
 
-  for (size_t i = 0; i < triangles.size(); i++) {
-    triangles[i].v0 += cameraPos;
-    triangles[i].v1 += cameraPos;
-    triangles[i].v2 += cameraPos;
-
-  }
-
   while (Update(triangles))
     {
       Draw(screen, triangles);
@@ -96,7 +89,6 @@ void Draw(screen* screen, vector<Triangle> triangles){
       depthBuffer[j][i] = 0;
     }
   }
-
 
   for( uint32_t i=0; i<triangles.size(); ++i ){
     vector<Vertex> vertices(3);
@@ -138,9 +130,7 @@ void VertexShader( Vertex& v, Pixel& p ){
 
    float r = glm::distance(lightPos, v.position);   //Distance from light source to vertex
    vec4 reflection = (lightPos - v.position) / r;  //Unit vector of reflection
-   p.illumination = ((lightPower * max(dot(reflection, v.normal), 1.f)) / (float)(4*3.1415*pow(r,2)));
-
-
+   p.illumination = indirectLightPowerPerArea + ((lightPower * max(dot(reflection, v.normal), 1.f)) / (float)(4*3.1415*pow(r,2)));
 }
 
 void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels ){
