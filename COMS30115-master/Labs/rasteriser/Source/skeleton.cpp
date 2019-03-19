@@ -20,9 +20,10 @@ SDL_Event event;
 #define FULLSCREEN_MODE true
 #define FOCAL_LENGTH SCREEN_HEIGHT/2
 vec4 cameraPos( 0, 0, 3.001, 0 );
+vec4 cameraPosAdd( 0, 0, 3.001, 0 );
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 vec4 lightPos(0,-0.5,-0.7, 1);
-vec3 lightPower = 5.1f*vec3( 1, 1, 1 );
+vec3 lightPower = 10.f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
 
 mat4 R(
@@ -66,6 +67,13 @@ int main( int argc, char* argv[] )
 
   vector<Triangle> triangles;
   LoadTestModel( triangles );
+
+  // for (size_t i = 0; i < triangles.size(); i++) {
+  //   triangles[i].v0 += cameraPos;
+  //   triangles[i].v1 += cameraPos;
+  //   triangles[i].v2 += cameraPos;
+  //
+  // }
 
   while (Update(triangles))
     {
@@ -124,13 +132,16 @@ void DrawPolygon( vector<Vertex>& vertices, screen* screen, vec3 color){
 
 void VertexShader( Vertex& v, Pixel& p ){
    Vertex copyV { R * v.position };
+   cameraPos = R * cameraPos;
    p.position.x = FOCAL_LENGTH * (copyV.position.x / copyV.position.z) + SCREEN_WIDTH/2;
    p.position.y = FOCAL_LENGTH * (copyV.position.y / copyV.position.z) + SCREEN_HEIGHT/2;
    p.depth = 1/copyV.position.z;
 
    float r = glm::distance(lightPos, v.position);   //Distance from light source to vertex
    vec4 reflection = (lightPos - v.position) / r;  //Unit vector of reflection
-   p.illumination = indirectLightPowerPerArea + ((lightPower * max(dot(reflection, v.normal), 1.f)) / (float)(4*3.1415*pow(r,2)));
+   p.illumination = ( ((lightPower) * max(dot(reflection, v.normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
+
+
 }
 
 void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels ){
@@ -206,7 +217,7 @@ void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color ){
     if(depthBuffer[line[i].position.y][line[i].position.x] < line[i].depth){
 
       depthBuffer[line[i].position.y][line[i].position.x] = line[i].depth;
-      PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*line[i].illumination );
+      PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*(indirectLightPowerPerArea +line[i].illumination) );
     }
   }
 }
@@ -249,12 +260,16 @@ bool Update(vector<Triangle>& triangles){
     break;
         case SDLK_UP:
         //lightPos.z--;
-         rotateCamera(vec4 (0.0785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
+         // rotateCamera(vec4 (0.0785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
+         rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.f,-0.1f,0.f,1.f));		/* Move camera backwards */
+
            /* Move camera forward */
     break;
       case SDLK_DOWN:
       //lightPos.z++;
-      rotateCamera(vec4 (-0.0785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
+      // rotateCamera(vec4 (-0.0785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
+      rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.f,0.1f,0.f,1.f));		/* Move camera backwards */
+
 
          /* Move camera backwards */
     break;
@@ -292,4 +307,5 @@ void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
     triangles[i].v1 = rotationMatrix*triangles[i].v1;
     triangles[i].v2 = rotationMatrix*triangles[i].v2;
   }
+  lightPos = rotationMatrix*lightPos;
 }
