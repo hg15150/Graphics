@@ -273,7 +273,7 @@ void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color , vec4 normal){
       float filter = Fractal(line[i]);
       // printf("%.2f %.2f %.2f\n", sin(filter), tan(filter), cos(exp(filter)));
 
-      PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan(exp(filter))), abs(tan(exp(filter))), abs(tan(exp(filter)))) * color *(indirectLightPowerPerArea +illumination) );
+      PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan((1.f/filter))), abs((tan(filter))), abs((tan(1.f/filter)))) * color *(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan(exp(filter))), abs(sin(exp(filter))), abs(cos(exp(filter)))) * color *(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(sin(1.f/i) + exp(1.f/i) + 0) * color *(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, (vec3(tan(1000.f/i), tan(1000.f/i), tan(1000.f/i)) * color )*(indirectLightPowerPerArea +illumination) );
