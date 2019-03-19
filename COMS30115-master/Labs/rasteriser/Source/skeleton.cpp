@@ -99,7 +99,6 @@ void Draw(screen* screen, vector<Triangle> triangles)
     }
   }
 
-
   for( uint32_t i=0; i<triangles.size(); ++i ){
     vector<Vertex> vertices(3);
     vertices[0].position = triangles[i].v0;
