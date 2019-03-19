@@ -19,11 +19,11 @@ SDL_Event event;
 #define SCREEN_HEIGHT 1024
 #define FULLSCREEN_MODE true
 #define FOCAL_LENGTH SCREEN_HEIGHT/2
-vec4 cameraPos( 0, 0, 3.001, 0 );
-vec4 cameraPosAdd( 0, 0, 3.001, 0 );
+vec4 cameraPos( 0, 0, 3.001, 1 );
+vec4 cameraPosAdd( 0, 0, 3.0001, 0 );
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 vec4 lightPos(0,-0.5,-0.7, 1);
-vec3 lightPower = 10.f*vec3( 1, 1, 1 );
+vec3 lightPower = 14.f*vec3( 1, 1, 1 );
 vec3 indirectLightPowerPerArea = 0.5f*vec3( 1, 1, 1 );
 
 mat4 R(
@@ -38,6 +38,7 @@ struct Pixel
   ivec2 position;
   float depth;
   vec3 illumination;
+  vec4 pos3d;
 };
 
 struct Vertex
@@ -54,11 +55,11 @@ bool Update(vector<Triangle>& triangles);
 void Draw(screen* screen, vector<Triangle> triangles);
 void VertexShader( Vertex& v, Pixel& p );
 void Interpolate( Pixel a, Pixel b, vector<Pixel>& result );
-void DrawLineSDL( screen* surface, Pixel a, Pixel b, vec3 color );
+void DrawLineSDL( screen* surface, Pixel a, Pixel b, vec3 color, vec4 normal );
 void DrawPolygon(  vector<Vertex>& vertices , screen* screen, vec3 color);
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
 void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels );
-void DrawRows(  vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels, screen* screen , vec3 color);
+void DrawRows(  vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels, screen* screen , vec3 color, vec4 normal);
 
 int main( int argc, char* argv[] )
 {
@@ -126,8 +127,7 @@ void DrawPolygon( vector<Vertex>& vertices, screen* screen, vec3 color){
   vector<Pixel> leftPixels;
   vector<Pixel> rightPixels;
   ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
-
-  DrawRows(leftPixels,rightPixels,screen,color);
+  DrawRows(leftPixels,rightPixels,screen,color, vertices[0].normal);
 }
 
 void VertexShader( Vertex& v, Pixel& p ){
@@ -136,10 +136,10 @@ void VertexShader( Vertex& v, Pixel& p ){
    p.position.x = FOCAL_LENGTH * (copyV.position.x / copyV.position.z) + SCREEN_WIDTH/2;
    p.position.y = FOCAL_LENGTH * (copyV.position.y / copyV.position.z) + SCREEN_HEIGHT/2;
    p.depth = 1/copyV.position.z;
-
-   float r = glm::distance(lightPos, v.position);   //Distance from light source to vertex
-   vec4 reflection = (lightPos - v.position) / r;  //Unit vector of reflection
-   p.illumination = ( ((lightPower) * max(dot(reflection, v.normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
+   p.pos3d = vec4(copyV.position.x*p.depth,copyV.position.y*p.depth,copyV.position.z*p.depth,1);
+   // float r = glm::distance(lightPos, v.position);   //Distance from light source to vertex
+   // vec4 reflection = (lightPos - v.position) / r;  //Unit vector of reflection
+   // p.illumination = ( ((lightPower) * max(dot(reflection, v.normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
 
 
 }
@@ -174,6 +174,7 @@ void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels,
       int y = (result[j].position.y)%numOfRows;
       if(leftPixels[y].position.x > result[j].position.x) leftPixels[y] = result[j];
       if(rightPixels[y].position.x < result[j].position.x) rightPixels[y] = result[j];
+
     }
   }
 }
@@ -185,39 +186,52 @@ void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
 
   float depthStep = (b.depth-a.depth) / float(max(N-1,1));
 
-  vec3 illuminationStep = ((b.illumination - a.illumination)/ float(max(N-1,1)));
+  vec4 pos3dStep ((b.pos3d - a.pos3d)/ float(max(N-1,1)));
 
   vec2 current( a.position );
-  vec3 currentIllumination( a.illumination );
+  vec4 currentPos3d( a.pos3d );
 
 
   for( int i=0; i<N; ++i ){
     result[i].position = round(current);
     current += step;
     result[i].depth = a.depth+i*depthStep;
-    result[i].illumination = currentIllumination;
-    currentIllumination += illuminationStep;
+    result[i].pos3d = currentPos3d;
+    currentPos3d += pos3dStep;
 
   }
 }
 
-void DrawRows(  vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels,screen* screen, vec3 color ){
+void DrawRows(  vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels,screen* screen, vec3 color, vec4 normal ){
   for(unsigned int i = 0; i < leftPixels.size(); i++){
-    DrawLineSDL(screen, leftPixels[i], rightPixels[i], color);
+    DrawLineSDL(screen, leftPixels[i], rightPixels[i], color,normal);
   }
 }
 
-void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color ){
+void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color , vec4 normal){
   ivec2 delta = glm::abs( a.position - b.position );
   int pixels = glm::max( delta.x, delta.y ) + 1;
   vector<Pixel> line(pixels);
   Interpolate(a, b, line);
 
   for (int i = 0; i < pixels; i++) {
+
     if(depthBuffer[line[i].position.y][line[i].position.x] < line[i].depth){
 
+
       depthBuffer[line[i].position.y][line[i].position.x] = line[i].depth;
-      PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*(indirectLightPowerPerArea +line[i].illumination) );
+      vec4 position(line[i].pos3d.x,line[i].pos3d.y,line[i].pos3d.z,1);
+      position = position / line[i].depth;
+      position.w = 1.f;
+      float r = glm::distance(lightPos+cameraPosAdd, position);   //Distance from light source to vertex
+      printf("%.2f//%.2f//%.2f//%.2f\n", position.x,position.y,position.z,position.w);
+
+      vec4 reflection = (lightPos+cameraPosAdd - position) / r;  //Unit vector of reflection
+
+      vec3 illumination( ((lightPower) * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
+      //if(illumination.x<0.00)printf("%.2f//%.2f//%.2f\n\n", illumination.x,illumination.y,illumination.z);
+    //if(((lightPower * dot(reflection, normal))/(float)(4*3.1415*pow(r,2))).x>0.f)  printf("%.2f\n",((lightPower * dot(reflection, normal))/(float)(4*3.1415*pow(r,2))).x);
+      PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*(indirectLightPowerPerArea +illumination) );
     }
   }
 }
@@ -292,6 +306,10 @@ bool Update(vector<Triangle>& triangles)
     }
   return true;
 }
+
+
+
+
 
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
   float x = rotation.x;
