@@ -39,6 +39,7 @@ struct Pixel
   float depth;
   vec3 illumination;
   vec4 pos3d;
+  vec3 colour;
 };
 
 struct Vertex
@@ -124,10 +125,14 @@ void DrawPolygon( vector<Vertex>& vertices, screen* screen, vec3 color){
     VertexShader( vertices[v], vertexPixels[v]);
   }
 
+  vertexPixels[0].colour = vec3(0,1,0);
+  vertexPixels[1].colour = vec3(1,0,0);
+  vertexPixels[2].colour = vec3(0,0,1);
+
   vector<Pixel> leftPixels;
   vector<Pixel> rightPixels;
   ComputePolygonRows( vertexPixels, leftPixels, rightPixels );
-  DrawRows(leftPixels,rightPixels,screen,color, vertices[0].normal);
+  DrawRows(leftPixels,rightPixels,screen, color, vertices[0].normal);
 }
 
 void VertexShader( Vertex& v, Pixel& p ){
@@ -191,6 +196,9 @@ void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
   vec2 current( a.position );
   vec4 currentPos3d( a.pos3d );
 
+  vec3 diff((b.colour - a.colour) / float(max(N-1,1)));
+  vec3 currentColour(a.colour);
+
 
   for( int i=0; i<N; ++i ){
     result[i].position = round(current);
@@ -198,6 +206,9 @@ void Interpolate( Pixel a, Pixel b, vector<Pixel>& result ){
     result[i].depth = a.depth+i*depthStep;
     result[i].pos3d = currentPos3d;
     currentPos3d += pos3dStep;
+
+    result[i].colour = (currentColour);
+    currentColour += diff;
 
   }
 }
@@ -224,14 +235,19 @@ void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color , vec4 normal){
       position = position / line[i].depth;
       position.w = 1.f;
       float r = glm::distance(lightPos+cameraPosAdd, position);   //Distance from light source to vertex
-      printf("%.2f//%.2f//%.2f//%.2f\n", position.x,position.y,position.z,position.w);
+      // printf("%.2f//%.2f//%.2f//%.2f\n", position.x,position.y,position.z,position.w);
 
       vec4 reflection = (lightPos+cameraPosAdd - position) / r;  //Unit vector of reflection
 
       vec3 illumination( ((lightPower) * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
       //if(illumination.x<0.00)printf("%.2f//%.2f//%.2f\n\n", illumination.x,illumination.y,illumination.z);
     //if(((lightPower * dot(reflection, normal))/(float)(4*3.1415*pow(r,2))).x>0.f)  printf("%.2f\n",((lightPower * dot(reflection, normal))/(float)(4*3.1415*pow(r,2))).x);
-      PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*(indirectLightPowerPerArea +illumination) );
+
+
+
+    PutPixelSDL( screen, line[i].position.x, line[i].position.y, line[i].colour*(indirectLightPowerPerArea +illumination) );
+    // PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*(indirectLightPowerPerArea +illumination) );
+
     }
   }
 }
