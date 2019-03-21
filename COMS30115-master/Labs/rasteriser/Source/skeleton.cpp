@@ -277,11 +277,11 @@ void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color , vec4 normal){
       Fract filter = Fractal(line[i]);
       // printf("%.2f %.2f %.2f\n", sin(filter), tan(filter), cos(exp(filter)));
 
-      PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan((filter.z)))) * color *(indirectLightPowerPerArea +illumination) );
+      // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan((filter.z)))) * color *(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan((filter.z))), abs((tan(filter.c))), abs((tan(i*i)))) * color *(indirectLightPowerPerArea +illumination) );
-      // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan(exp(filter))), abs(sin(exp(filter))), abs(cos(exp(filter)))) * color *(indirectLightPowerPerArea +illumination) );
+      // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan(exp(filter.z))), abs(sin(exp(filter.z))), abs(cos(exp(filter.z)))) * color *(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(sin(1.f/i) + exp(1.f/i) + 0) * color *(indirectLightPowerPerArea +illumination) );
-      // PutPixelSDL( screen, line[i].position.x, line[i].position.y, (vec3(tan(1000.f/i), tan(1000.f/i), tan(1000.f/i)) * color )*(indirectLightPowerPerArea +illumination) );
+      PutPixelSDL( screen, line[i].position.x, line[i].position.y, (vec3(tan(1000.f/i), tan(1000.f/i), tan(1000.f/i)) * color )*(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(tan(exp(i)), cos(exp(i)), sin(exp(i))) * color*(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*(indirectLightPowerPerArea +illumination) );
     }

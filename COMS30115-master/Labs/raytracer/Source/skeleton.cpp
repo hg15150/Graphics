@@ -79,8 +79,8 @@ int main( int argc, char* argv[] )
 }
 
 vec3 Fractal(float i, float j){
-   float z = abs(sin(i*j));
-   float c = 0.01f;
+   float z = abs(sin(i));
+   float c = abs(cos(j));
 
    // printf("%.3f\n", z);
 
@@ -90,7 +90,7 @@ vec3 Fractal(float i, float j){
    int iteration = 0;
    while(abs(z) < 5 && ++iteration < SCREEN_HEIGHT) {
       z = z*z + c;
-      c += 0.001f;
+      c = abs(sin(c));
    }
 
 
@@ -140,10 +140,14 @@ void Draw(screen* screen, vector<Triangle>& triangles)
         //Get intersected triangle
         Triangle closestIntersectedTriangle = triangles[intersection.triangleIndex];
 
-        vec3 filter = Fractal(i, j);
+        // vec3 filter = Fractal(i, j);
+
+        // Fract filter
 
         // colour = brightness * filter;
-        colour = brightness * closestIntersectedTriangle.color * filter;
+        colour = brightness * closestIntersectedTriangle.color;
+        // PutPixelSDL( screen, line[i].position.x, line[i].position.y, (vec3(tan(1000.f/i), tan(1000.f/i), tan(1000.f/i)) * color )*(indirectLightPowerPerArea +illumination) );
+
         // colour = brightness * closestIntersectedTriangle.color;
 
         //Set pixel colour to colour of closest intersected triangle
