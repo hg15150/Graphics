@@ -13,10 +13,10 @@ using glm::mat4;
 
 SDL_Event event;
 
-// #define SCREEN_WIDTH 320
-// #define SCREEN_HEIGHT 256
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 512
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 256
+// #define SCREEN_WIDTH 1920
+// #define SCREEN_HEIGHT 1080
 
 #define FULLSCREEN_MODE true
 vec4 cameraPos(0,0,-3,1);
@@ -83,8 +83,8 @@ void Draw(screen* screen, vector<Triangle>& triangles)
   int halfScreenWidth = SCREEN_WIDTH/2;
   int halfScreenHeight = SCREEN_HEIGHT/2;
 
-  for(int i=0; i<SCREEN_WIDTH; i++){
-    for (int j = 0; j < SCREEN_HEIGHT; j++) {
+  for(float i=0.f; i<SCREEN_WIDTH; i++){
+    for (float j = 0.f; j < SCREEN_HEIGHT; j++) {
 
       //Calculate ray direction { d = x - W/2, y - H/2, f, 1}
       vec4 rayDirection(i - halfScreenWidth, j - halfScreenHeight, focalLength, 1);
@@ -108,15 +108,9 @@ void Draw(screen* screen, vector<Triangle>& triangles)
         //Get intersected triangle
         Triangle closestIntersectedTriangle = triangles[intersection.triangleIndex];
 
-        //Set pixel colour to colour of closest intersected triangle
-        // colour.x = closestIntersectedTriangle.color.x;
-        // colour.y = closestIntersectedTriangle.color.y;
-        // colour.z = closestIntersectedTriangle.color.z;
         colour = brightness*closestIntersectedTriangle.color;
-        // colour.x = brightness.x*closestIntersectedTriangle.color.x;
-        // colour.y = brightness.y*closestIntersectedTriangle.color.y;
-        // colour.z = brightness.z*closestIntersectedTriangle.color.z;
 
+        // colour = brightness*closestIntersectedTriangle.color * vec3(abs(tan(i*j)));
       }
 
       PutPixelSDL(screen, i, j, colour);

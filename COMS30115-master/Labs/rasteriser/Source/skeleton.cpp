@@ -69,13 +69,6 @@ int main( int argc, char* argv[] )
   vector<Triangle> triangles;
   LoadTestModel( triangles );
 
-  // for (size_t i = 0; i < triangles.size(); i++) {
-  //   triangles[i].v0 += cameraPos;
-  //   triangles[i].v1 += cameraPos;
-  //   triangles[i].v2 += cameraPos;
-  //
-  // }
-
   while (Update(triangles))
     {
       Draw(screen, triangles);
@@ -224,7 +217,7 @@ void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color , vec4 normal){
       position = position / line[i].depth;
       position.w = 1.f;
       float r = glm::distance(lightPos+cameraPosAdd, position);   //Distance from light source to vertex
-      printf("%.2f//%.2f//%.2f//%.2f\n", position.x,position.y,position.z,position.w);
+      // printf("%.2f//%.2f//%.2f//%.2f\n", position.x,position.y,position.z,position.w);
 
       vec4 reflection = (lightPos+cameraPosAdd - position) / r;  //Unit vector of reflection
 
