@@ -4,6 +4,7 @@
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 #include <stdint.h>
+#include <complex>
 
 using namespace std;
 using glm::vec3;
@@ -34,6 +35,12 @@ struct Intersection
   int triangleIndex;
   };
 
+struct Fract
+{
+   complex<float> z;
+   complex<float> c;
+};
+
 //Intersection* Intersections = NULL;
 
 // -----------------------------------------------------------------------------
@@ -45,6 +52,7 @@ float calcDistance(vec3 start, vec3 intersection);
 vec3 DirectLight( const Intersection& i, vector<Triangle>& triangles);
 bool xChecker(vec3 x);
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
+vec3 Fractal(Intersection& i, int x, int y);
 
 // -----------------------------------------------------------------------------
 
@@ -68,6 +76,27 @@ int main( int argc, char* argv[] )
 
   KillSDL(screen);
   return 0;
+}
+
+vec3 Fractal(float i, float j){
+   float z = abs(sin(i*j));
+   float c = 0.01f;
+
+   // printf("%.3f\n", z);
+
+   // std::complex<float> z = (float) i.distance * x * y;
+   // std::complex<float> c = ( (float) i.triangleIndex  );
+
+   int iteration = 0;
+   while(abs(z) < 5 && ++iteration < SCREEN_HEIGHT) {
+      z = z*z + c;
+      c += 0.001f;
+   }
+
+
+   printf("%.2f %.2f %.2f\n", abs(tan(exp(z))), abs(cos(exp(z))), abs(sin(exp(z))));
+
+   return vec3( abs(tan(exp(z))), abs(cos(exp(z))), abs(sin(exp(z))) );
 }
 
 /*Place your drawing here*/
@@ -104,15 +133,23 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 
       vec3 colour(0.0, 0.0, 0.0); //Set initial colour of pixel to black
 
+      // vec3 filter = Fractal(intersection, i, j);
+
       if(isIntersection){
+
         //Get intersected triangle
         Triangle closestIntersectedTriangle = triangles[intersection.triangleIndex];
+
+        vec3 filter = Fractal(i, j);
+
+        // colour = brightness * filter;
+        colour = brightness * closestIntersectedTriangle.color * filter;
+        // colour = brightness * closestIntersectedTriangle.color;
 
         //Set pixel colour to colour of closest intersected triangle
         // colour.x = closestIntersectedTriangle.color.x;
         // colour.y = closestIntersectedTriangle.color.y;
         // colour.z = closestIntersectedTriangle.color.z;
-        colour = brightness*closestIntersectedTriangle.color;
         // colour.x = brightness.x*closestIntersectedTriangle.color.x;
         // colour.y = brightness.y*closestIntersectedTriangle.color.y;
         // colour.z = brightness.z*closestIntersectedTriangle.color.z;
@@ -120,6 +157,7 @@ void Draw(screen* screen, vector<Triangle>& triangles)
       }
 
       PutPixelSDL(screen, i, j, colour);
+      // PutPixelSDL(screen, i, j, colour);
     }
   }
 }

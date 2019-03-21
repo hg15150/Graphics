@@ -49,6 +49,12 @@ struct Vertex
   vec3 colour;
 };
 
+struct Fract
+{
+   complex<float> z;
+   complex<float> c;
+};
+
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
@@ -61,7 +67,7 @@ void DrawPolygon(  vector<Vertex>& vertices , screen* screen, vec3 color);
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
 void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels );
 void DrawRows(  vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels, screen* screen , vec3 color, vec4 normal);
-void fractal(float left, float top, float xside, float yside);
+Fract Fractal(Pixel& p);
 
 int main( int argc, char* argv[] )
 {
@@ -90,16 +96,18 @@ int main( int argc, char* argv[] )
   return 0;
 }
 
-float Fractal(Pixel& p){
-   std::complex<float> z = (float) p.position.x * 2 / SCREEN_WIDTH;
-   std::complex<float> c = (float) p.position.y * 2 / SCREEN_HEIGHT;
+Fract Fractal(Pixel& p){
+   std::complex<float> z = (float) p.position.x / SCREEN_WIDTH;
+   std::complex<float> c = (float) p.position.y / 2 * SCREEN_HEIGHT;
+   // std::complex<float> c = (float) 0.5f;
 
    int iteration = 0;
-   while(abs(z) < 2 && ++iteration < SCREEN_HEIGHT) {
+   while(abs(z) < 200 && ++iteration < SCREEN_HEIGHT) {
       z = pow(z, 2) + c;
    }
+   Fract f = { z = z, c = c };
 
-   return abs(z);
+   return f;
 }
 
 /*Place your drawing here*/
@@ -112,8 +120,8 @@ void Draw(screen* screen, vector<Triangle> triangles)
   // float mani = 0.f;
   // unsigned long max_iteration = SCREEN_HEIGHT;
   // std::complex<float> prevZ = 0.f;
-  // for (size_t i = 0; i < SCREEN_WIDTH; i++) {
-  //    for (size_t j = 0; j < SCREEN_HEIGHT; j++) {
+  // for (unsigned int i = 0; i < SCREEN_WIDTH; i++) {
+  //    for (unsigned int j = 0; j < SCREEN_HEIGHT; j++) {
   //       std::complex<float> z = (float)i * 2 / SCREEN_WIDTH;
   //       std::complex<float> c = (float)j * 2 / SCREEN_HEIGHT;
   //
@@ -121,11 +129,11 @@ void Draw(screen* screen, vector<Triangle> triangles)
   //       // printf("%.10f %.10f\n", imag(z), imag(c));
   //
   //       int iteration = 0;
-  //       while(abs(z) < 20 && ++iteration < max_iteration) {
+  //       while(abs(z) < 150 && ++iteration < max_iteration) {
   //          z = pow(z, 2) + c;
   //       }
   //
-  //       // printf("%.10f %.10f\n", abs(z), abs(c));
+  //       // printf("%.10f %.10f %d\n", abs(z), abs(c), i*j);
   //
   //       // if(iteration == max_iteration) PutPixelSDL(screen, i, j, vec3(0,0,0));
   //       PutPixelSDL(screen, i, j, vec3( tan(abs(z)), tan(abs(c)), tan(i*j)));
@@ -135,7 +143,6 @@ void Draw(screen* screen, vector<Triangle> triangles)
   //       // out = vec3(mani);
   //    }
   // }
-
 
   for (int i = 0; i < SCREEN_WIDTH; i++) {
     for (int j = 0; j < SCREEN_HEIGHT; j++) {
@@ -156,7 +163,6 @@ void Draw(screen* screen, vector<Triangle> triangles)
     vec3 color = triangles[i].color;
 
     DrawPolygon( vertices, screen, color );
-
   }
 }
 
@@ -183,8 +189,6 @@ void VertexShader( Vertex& v, Pixel& p ){
    // float r = glm::distance(lightPos, v.position);   //Distance from light source to vertex
    // vec4 reflection = (lightPos - v.position) / r;  //Unit vector of reflection
    // p.illumination = ( ((lightPower) * max(dot(reflection, v.normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
-
-
 }
 
 void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels ){
@@ -270,10 +274,11 @@ void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color , vec4 normal){
       vec4 reflection = (lightPos+cameraPosAdd - position) / r;  //Unit vector of reflection
       vec3 illumination( ((lightPower) * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
 
-      float filter = Fractal(line[i]);
+      Fract filter = Fractal(line[i]);
       // printf("%.2f %.2f %.2f\n", sin(filter), tan(filter), cos(exp(filter)));
 
-      PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan((1.f/filter))), abs((tan(filter))), abs((tan(1.f/filter)))) * color *(indirectLightPowerPerArea +illumination) );
+      PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan((filter.z)))) * color *(indirectLightPowerPerArea +illumination) );
+      // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan((filter.z))), abs((tan(filter.c))), abs((tan(i*i)))) * color *(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(abs(tan(exp(filter))), abs(sin(exp(filter))), abs(cos(exp(filter)))) * color *(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, vec3(sin(1.f/i) + exp(1.f/i) + 0) * color *(indirectLightPowerPerArea +illumination) );
       // PutPixelSDL( screen, line[i].position.x, line[i].position.y, (vec3(tan(1000.f/i), tan(1000.f/i), tan(1000.f/i)) * color )*(indirectLightPowerPerArea +illumination) );
