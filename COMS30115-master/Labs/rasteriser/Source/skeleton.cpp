@@ -19,6 +19,11 @@ SDL_Event event;
 #define SCREEN_HEIGHT 1024
 #define FULLSCREEN_MODE true
 #define FOCAL_LENGTH SCREEN_HEIGHT/2
+#define Y_MAX SCREEN_HEIGHT
+#define Y_MIN 0
+#define X_MAX SCREEN_WIDTH
+#define X_MIN 0
+
 vec4 cameraPos( 0, 0, 3.001, 1 );
 vec4 cameraPosAdd( 0, 0, 3.0001, 0 );
 float depthBuffer[SCREEN_HEIGHT][SCREEN_WIDTH];
@@ -39,6 +44,7 @@ struct Pixel
   float depth;
   vec3 illumination;
   vec4 pos3d;
+  unsigned char outcode;
 };
 
 struct Vertex
@@ -60,6 +66,11 @@ void DrawPolygon(  vector<Vertex>& vertices , screen* screen, vec3 color);
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
 void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels );
 void DrawRows(  vector<Pixel>& leftPixels,const vector<Pixel>& rightPixels, screen* screen , vec3 color, vec4 normal);
+void Outcode( Pixel& a );
+int clipTOP( Pixel& a, Pixel& b);
+int clipBOTTOM( Pixel& a, Pixel& b);
+int clipLEFT( Pixel& a, Pixel& b);
+int clipRIGHT( Pixel& a, Pixel& b);
 
 int main( int argc, char* argv[] )
 {
@@ -223,10 +234,72 @@ void DrawLineSDL( screen* screen, Pixel a, Pixel b, vec3 color , vec4 normal){
 
       vec3 illumination( ((lightPower) * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
       //if(illumination.x<0.00)printf("%.2f//%.2f//%.2f\n\n", illumination.x,illumination.y,illumination.z);
-    //if(((lightPower * dot(reflection, normal))/(float)(4*3.1415*pow(r,2))).x>0.f)  printf("%.2f\n",((lightPower * dot(reflection, normal))/(float)(4*3.1415*pow(r,2))).x);
+      //if(((lightPower * dot(reflection, normal))/(float)(4*3.1415*pow(r,2))).x>0.f)  printf("%.2f\n",((lightPower * dot(reflection, normal))/(float)(4*3.1415*pow(r,2))).x);
       PutPixelSDL( screen, line[i].position.x, line[i].position.y, color*(indirectLightPowerPerArea +illumination) );
-    }
+
+   }
   }
+}
+
+int clipLine( Pixel& a, Pixel& b){
+   Outcode(a);
+   Outcode(b);
+
+   int outA = a.outcode;
+   int outB = b.outcode;
+
+   if( outA | outB ) return 0;
+   if( (outA & outB) != 0 ) return -1;
+
+   return 1;
+
+}
+
+void Outcode( Pixel& a ){
+   int outcode = 0;
+   int x = a.position.x;
+   int y = a.position.y;
+
+   if(x > X_MAX)      outcode += 2;
+   else if(x < X_MIN) outcode += 1;
+
+   if(y > Y_MAX)      outcode += 8;
+   else if(y < Y_MIN) outcode += 4;
+
+   a.outcode = outcode;
+}
+
+int clipTOP( Pixel& a, Pixel& b){
+   int x0 = a.position.x;
+   int y0 = a.position.y;
+   int x1 = b.position.x;
+   int y1 = b.position.y;
+
+   return x1 + (x0 - x1) * (Y_MAX - y1) / (y0 - y1);
+}
+int clipBOTTOM( Pixel& a, Pixel& b){
+   int x0 = a.position.x;
+   int y0 = a.position.y;
+   int x1 = b.position.x;
+   int y1 = b.position.y;
+
+   return x1 + (x0 - x1) * (Y_MIN - y1) / (y0 - y1);
+}
+int clipLEFT( Pixel& a, Pixel& b){
+   int x0 = a.position.x;
+   int y0 = a.position.y;
+   int x1 = b.position.x;
+   int y1 = b.position.y;
+
+   return y1 + (X_MIN - x1) * (y0 - y1) / (x0 - x1);
+}
+int clipRIGHT( Pixel& a, Pixel& b){
+   int x0 = a.position.x;
+   int y0 = a.position.y;
+   int x1 = b.position.x;
+   int y1 = b.position.y;
+
+   return y1 + (X_MAX - x1) * (y0 - y1) / (x0 - x1);
 }
 
 /*Place updates of parameters here*/
@@ -298,10 +371,6 @@ bool Update(vector<Triangle>& triangles){
     }
   return true;
 }
-
-
-
-
 
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
   float x = rotation.x;
