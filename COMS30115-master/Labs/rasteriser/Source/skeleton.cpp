@@ -74,9 +74,9 @@ int clipLEFT( Pixel& a, Pixel& b);
 int clipRIGHT( Pixel& a, Pixel& b);
 void clipZ(vector<Pixel>& trianglePixels);
 void clipPolygon(vector<Pixel>& trianglePixels);
-void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices);
+void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices, int x);
 bool isOnScreen(Pixel& pixel, vector<vec2> edgeVertices);
-void Intermediate(Pixel& p1, Pixel& p2, Pixel& intermediate, vector<vec2> edgeVertices);
+void Intermediate(Pixel& p1, Pixel& p2, Pixel& intermediate, vector<vec2> edgeVertices, int side);
 
 
 int main( int argc, char* argv[] )
@@ -97,6 +97,28 @@ int main( int argc, char* argv[] )
 
   KillSDL(screen);
   return 0;
+}
+
+bool cull(vector<Pixel>& vertexPixels){
+   bool cull[3];
+   for (unsigned int v = 0; v < vertexPixels.size(); v++) {
+      cull[v] = true;
+     cull[v] &= (vertexPixels[v].position.y < SCREEN_HEIGHT);
+     cull[v] &= (vertexPixels[v].position.y >= 0);
+     cull[v] &= (vertexPixels[v].position.x < SCREEN_WIDTH);
+     cull[v] &= (vertexPixels[v].position.x >= 0);
+     cull[v] &= (vertexPixels[v].depth <= 1);
+   }
+   return (!cull[0] && !cull[1] && !cull[2]);
+}
+
+bool depthCull(vector<Vertex>& vertices){
+   bool cull[3];
+   for (unsigned int v = 0; v < vertices.size(); v++) {
+     cull[v] = (vertices[v].position.z < -3);
+     if(cull[v])vertices[v].position.z = -3;
+   }
+   return false;;
 }
 
 /*Place your drawing here*/
@@ -122,11 +144,15 @@ void Draw(screen* screen, vector<Triangle> triangles){
 
     vec3 color = triangles[i].color;
 
+    if(depthCull(vertices)) continue;
+
     DrawPolygon( vertices, screen, color );
 
   }
 
 }
+
+
 
 void DrawPolygon( vector<Vertex>& vertices, screen* screen, vec3 color){
   vector<Pixel> vertexPixels( vertices.size() );
@@ -134,6 +160,7 @@ void DrawPolygon( vector<Vertex>& vertices, screen* screen, vec3 color){
   for (unsigned int v = 0; v < vertices.size(); v++) {
     VertexShader( vertices[v], vertexPixels[v]);
   }
+  if(cull(vertexPixels))return;
 
   if(isClipping) clipPolygon(vertexPixels);
 
@@ -159,7 +186,6 @@ void VertexShader( Vertex& v, Pixel& p ){
    // vec4 reflection = (lightPos - v.position) / r;  //Unit vector of reflection
    // p.illumination = ( ((lightPower) * max(dot(reflection, v.normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
 }
-
 
 void ComputePolygonRows( vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels ){
 
@@ -320,25 +346,25 @@ void clipPolygon(vector<Pixel>& trianglePixels){
 
     clipZ(trianglePixels);
 
-    /* Top edge */  // x, y
+    // /* Top edge */  // x, y
     edgeVertices[0] = vec2(SCREEN_WIDTH, 0);
     edgeVertices[1] = vec2(0, 0);
-    clipEdge(trianglePixels, edgeVertices);
-
-    /* Left edge */
+    clipEdge(trianglePixels, edgeVertices, 0);
+    //
+    // /* Left edge */
     edgeVertices[0] = vec2(0, 0);
     edgeVertices[1] = vec2(0, SCREEN_HEIGHT);
-    clipEdge(trianglePixels, edgeVertices);
+    clipEdge(trianglePixels, edgeVertices, 1);
 
     /* Right edge */
     edgeVertices[0] = vec2(SCREEN_WIDTH, SCREEN_HEIGHT);
     edgeVertices[1] = vec2(SCREEN_WIDTH, 0);
-    clipEdge(trianglePixels, edgeVertices);
+    clipEdge(trianglePixels, edgeVertices, 2);
 
-    /* Bottom edge */
+//     /* Bottom edge */
     edgeVertices[0] = vec2(0, SCREEN_HEIGHT);
     edgeVertices[1] = vec2(SCREEN_WIDTH, SCREEN_HEIGHT);
-    clipEdge(trianglePixels, edgeVertices);
+    clipEdge(trianglePixels, edgeVertices, 3);
 }
 
 void clipZ(vector<Pixel>& trianglePixels){
@@ -349,15 +375,12 @@ void clipZ(vector<Pixel>& trianglePixels){
    Pixel p1;
    Pixel p2 = trianglePixels[size - 1];
    float threshold = 1.00000f;
-   printf("-------------------\n");
-
 
    for (int i = 0; i < size; i++) {
       p1 = trianglePixels[i];
 
       if( (p1.depth <= threshold) && (p2.depth <= threshold) ){
          clippedPixels.push_back(p2);
-         printf("TOP\n");
       }
       else if( (p1.depth <= threshold) && !(p2.depth <= threshold)){
          Pixel intermediate;
@@ -376,8 +399,6 @@ void clipZ(vector<Pixel>& trianglePixels){
          intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
 
          clippedPixels.push_back(intermediate);
-         printf("MIDDLE\n");
-
       }
       else if( !(p1.depth <= threshold) && (p2.depth <= threshold)){
          Pixel intermediate;
@@ -389,49 +410,49 @@ void clipZ(vector<Pixel>& trianglePixels){
          vec2 pixel2( (float) p2.position.x, (float) p2.position.y );
 
          intermediate.position = (scale * ( pixel2 - pixel1) + pixel1);
-         // intermediate.position = scale * (p1.position - p2.position) + (p2.position);
-         // intermediate.position.x = FOCAL_LENGTH * (p1.pos3d.x / p1.depth) + SCREEN_WIDTH/2;
-         // intermediate.position.y = FOCAL_LENGTH * (p1.pos3d.y / p1.depth) + SCREEN_HEIGHT/2;
          intermediate.depth = 1;
          intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
          clippedPixels.push_back(p2);
          clippedPixels.push_back(intermediate);
-
-         printf("BOTTOM\n");
-
       }
       p2 = p1;
    }
    trianglePixels = clippedPixels;
 }
 
-void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices){
+void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices, int side){
    int size = trianglePixels.size();
 
    vector<Pixel> clippedPixels;
-   Pixel p2;
-   Pixel p1 = trianglePixels[size - 1];
+   Pixel p1 ;
+   Pixel p2 = trianglePixels[size - 1];
+   printf("-------------\n");
 
    for (int i = 0; i < size; i++) {
-      p2 = trianglePixels[i];
+      p1 = trianglePixels[i];
+      Pixel intermediate;
+
 
       if( (isOnScreen(p1, edgeVertices)) && (isOnScreen(p2, edgeVertices))) {
          clippedPixels.push_back(p2);
+         printf("TOP\n");
+
       }
       else if( (isOnScreen(p1, edgeVertices)) && !(isOnScreen(p2, edgeVertices))) {
-         Pixel intermediate;
-         Intermediate(p1, p2, intermediate, edgeVertices);
+         Intermediate(p1, p2, intermediate, edgeVertices, side);
 
          clippedPixels.push_back(intermediate);
+         printf("MIDDLE\n");
+
       }
       else if( !(isOnScreen(p1, edgeVertices)) && (isOnScreen(p2, edgeVertices))) {
-         Pixel intermediate;
-         Intermediate(p1, p2, intermediate, edgeVertices);
+         Intermediate( p1, p2, intermediate, edgeVertices, side);
 
-         clippedPixels.push_back(intermediate);
          clippedPixels.push_back(p2);
+         clippedPixels.push_back(intermediate);
+         printf("BOTTOM\n");
       }
-      p1 = p2;
+      p2 = p1;
    }
    trianglePixels = clippedPixels;
 }
@@ -457,12 +478,12 @@ bool isOnScreen(Pixel& pixel, vector<vec2> edgeBounds){
     return false;
 }
 
-void Intermediate(Pixel& p1, Pixel& p2, Pixel& Intermediate, vector<vec2> edgeVertices){
+void Intermediate(Pixel& p1, Pixel& p2, Pixel& Intermediate, vector<vec2> edgeVertices, int side){
 
    //Top
-   if(edgeVertices[0].x > edgeVertices[1].x){
+   if(side == 0){
       float TotalDist = glm::abs(p1.position.y - p2.position.y);
-      float FractDist = p1.position.y;
+      float FractDist = glm::abs(p1.position.y);
       float scale = FractDist / TotalDist;
 
       vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
@@ -473,10 +494,10 @@ void Intermediate(Pixel& p1, Pixel& p2, Pixel& Intermediate, vector<vec2> edgeVe
       Intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
       Intermediate.pos3d.w = 1;
    }
-   //Left
-   else if(edgeVertices[0].y > edgeVertices[1].y){
+   // //Left
+   else if(side == 1){
       float TotalDist = glm::abs(p1.position.x - p2.position.x);
-      float FractDist = p1.position.x;
+      float FractDist = glm::abs(p1.position.x);
       float scale = FractDist / TotalDist;
 
       vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
@@ -488,33 +509,39 @@ void Intermediate(Pixel& p1, Pixel& p2, Pixel& Intermediate, vector<vec2> edgeVe
       Intermediate.pos3d.w = 1;
    }
    //Right
-   else if(edgeVertices[0].y > edgeVertices[1].y){
+   else if(side == 2){
+
       float TotalDist = glm::abs(p1.position.x - p2.position.x);
-      float FractDist = p1.position.x;
+      float FractDist = glm::abs( p1.position.x - (SCREEN_WIDTH));
       float scale = FractDist / TotalDist;
 
       vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
       vec2 pixel2( (float) p2.position.x, (float) p2.position.y );
 
-      Intermediate.position = (scale * (pixel2 - pixel1) + pixel1);
+      Intermediate.position = (scale * ( pixel2 - pixel1) + pixel1);
       Intermediate.depth = scale * (p2.depth - p1.depth) + p1.depth;
       Intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
       Intermediate.pos3d.w = 1;
+      if(Intermediate.position.x >= SCREEN_WIDTH) Intermediate.position.x = SCREEN_WIDTH - 1;
+      // Intermediate.position.y = SCREEN_WIDTH - 1;
    }
-   //Bottom
-   else if(edgeVertices[1].x > edgeVertices[0].x){
+   // //Bottom
+   else if(side == 3){
       float TotalDist = glm::abs(p1.position.y - p2.position.y);
-      float FractDist = p1.position.y;
+      float FractDist = glm::abs(p1.position.y - SCREEN_HEIGHT);
       float scale = FractDist / TotalDist;
 
       vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
-      vec2 pixel2( (float) p1.position.x, (float) p1.position.y );
+      vec2 pixel2( (float) p2.position.x, (float) p2.position.y );
 
-      Intermediate.position = (scale * (pixel2 - pixel1) + pixel1);
+      Intermediate.position = (scale * ( pixel2 - pixel1) + pixel1);
       Intermediate.depth = scale * (p2.depth - p1.depth) + p1.depth;
       Intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
       Intermediate.pos3d.w = 1;
+      if(Intermediate.position.y >= SCREEN_HEIGHT) Intermediate.position.y = SCREEN_HEIGHT-1;
+
    }
+   printf("%d %d\n", Intermediate.position.x, Intermediate.position.y);
 }
 
 /*Place updates of parameters here*/
