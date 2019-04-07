@@ -74,9 +74,9 @@ int clipLEFT( Pixel& a, Pixel& b);
 int clipRIGHT( Pixel& a, Pixel& b);
 void clipZ(vector<Pixel>& trianglePixels);
 void clipPolygon(vector<Pixel>& trianglePixels);
-void clipEdge(vector<Pixel>& trianglePixels, vec2 edgeVertices[]);
-bool isOnScreen(Pixel& pixel, vec2 * edgeVertices);
-void Intermediate(Pixel& p1, Pixel& p2, Pixel& intermediate, vec2 edgeVertices);
+void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices);
+bool isOnScreen(Pixel& pixel, vector<vec2> edgeVertices);
+void Intermediate(Pixel& p1, Pixel& p2, Pixel& intermediate, vector<vec2> edgeVertices);
 
 
 int main( int argc, char* argv[] )
@@ -135,7 +135,7 @@ void DrawPolygon( vector<Vertex>& vertices, screen* screen, vec3 color){
     VertexShader( vertices[v], vertexPixels[v]);
   }
 
-  if(isClipping) clipZ(vertexPixels);
+  if(isClipping) clipPolygon(vertexPixels);
 
  //  if(vertexPixels.size() == 4){
  //     printf("%.2f %.2f %.2f %.2f\n", vertexPixels[0].depth, vertexPixels[1].depth, vertexPixels[2].depth, vertexPixels[3].depth);
@@ -316,7 +316,7 @@ int clipRIGHT( Pixel& a, Pixel& b){
 }
 
 void clipPolygon(vector<Pixel>& trianglePixels){
-   vec2 edgeVertices[2];
+    vector<vec2> edgeVertices(2);
 
     clipZ(trianglePixels);
 
@@ -349,74 +349,94 @@ void clipZ(vector<Pixel>& trianglePixels){
    Pixel p1;
    Pixel p2 = trianglePixels[size - 1];
    float threshold = 1.00000f;
+   printf("-------------------\n");
+
 
    for (int i = 0; i < size; i++) {
       p1 = trianglePixels[i];
 
       if( (p1.depth <= threshold) && (p2.depth <= threshold) ){
          clippedPixels.push_back(p2);
+         printf("TOP\n");
       }
       else if( (p1.depth <= threshold) && !(p2.depth <= threshold)){
          Pixel intermediate;
-         intermediate.position.x = FOCAL_LENGTH * (p1.pos3d.x / p1.depth) + SCREEN_WIDTH/2;
-         intermediate.position.y = FOCAL_LENGTH * (p1.pos3d.y / p1.depth) + SCREEN_HEIGHT/2;
+         float totalDepth = glm::abs(p1.depth - p2.depth);
+         float seenDepth = glm::abs(p1.depth - 1);
+         float scale = seenDepth / totalDepth;
+
+         vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
+         vec2 pixel2( (float) p2.position.x, (float) p2.position.y );
+
+         intermediate.position = (scale * ( pixel2 - pixel1) + pixel1);
+         // intermediate.position = scale * (p1.position - p2.position) + (p2.position);
+         // intermediate.position.x = FOCAL_LENGTH * (p1.pos3d.x / p1.depth) + SCREEN_WIDTH/2;
+         // intermediate.position.y = FOCAL_LENGTH * (p1.pos3d.y / p1.depth) + SCREEN_HEIGHT/2;
          intermediate.depth = 1;
-         intermediate.pos3d = vec4((p1.pos3d.x / p1.depth), (p1.pos3d.y / p1.depth)*1, 1,1);
+         intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
 
          clippedPixels.push_back(intermediate);
+         printf("MIDDLE\n");
+
       }
       else if( !(p1.depth <= threshold) && (p2.depth <= threshold)){
          Pixel intermediate;
-         intermediate.position.x = FOCAL_LENGTH * (p1.pos3d.x / p1.depth) + SCREEN_WIDTH/2;
-         intermediate.position.y = FOCAL_LENGTH * (p1.pos3d.y / p1.depth) + SCREEN_HEIGHT/2;
-         intermediate.depth = 1;
-         intermediate.pos3d = vec4((p1.pos3d.x / p1.depth), (p1.pos3d.y / p1.depth)*1, 1,1);
+         float totalDepth = glm::abs(p1.depth - p2.depth);
+         float seenDepth = glm::abs(p1.depth - 1);
+         float scale = seenDepth / totalDepth;
 
-         clippedPixels.push_back(intermediate);
+         vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
+         vec2 pixel2( (float) p2.position.x, (float) p2.position.y );
+
+         intermediate.position = (scale * ( pixel2 - pixel1) + pixel1);
+         // intermediate.position = scale * (p1.position - p2.position) + (p2.position);
+         // intermediate.position.x = FOCAL_LENGTH * (p1.pos3d.x / p1.depth) + SCREEN_WIDTH/2;
+         // intermediate.position.y = FOCAL_LENGTH * (p1.pos3d.y / p1.depth) + SCREEN_HEIGHT/2;
+         intermediate.depth = 1;
+         intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
          clippedPixels.push_back(p2);
+         clippedPixels.push_back(intermediate);
+
+         printf("BOTTOM\n");
+
       }
       p2 = p1;
    }
    trianglePixels = clippedPixels;
 }
 
-void clipEdge(vector<Pixel>& trianglePixels, vec2 edgeVertices[]){
+void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices){
    int size = trianglePixels.size();
 
    vector<Pixel> clippedPixels;
-   Pixel p1;
-   Pixel p2 = trianglePixels[size - 1];
+   Pixel p2;
+   Pixel p1 = trianglePixels[size - 1];
 
    for (int i = 0; i < size; i++) {
-      p1 = trianglePixels[i];
+      p2 = trianglePixels[i];
 
       if( (isOnScreen(p1, edgeVertices)) && (isOnScreen(p2, edgeVertices))) {
-         clippedPixels.push_back(p1);
+         clippedPixels.push_back(p2);
       }
       else if( (isOnScreen(p1, edgeVertices)) && !(isOnScreen(p2, edgeVertices))) {
          Pixel intermediate;
-         //intermediate function
+         Intermediate(p1, p2, intermediate, edgeVertices);
 
          clippedPixels.push_back(intermediate);
       }
       else if( !(isOnScreen(p1, edgeVertices)) && (isOnScreen(p2, edgeVertices))) {
          Pixel intermediate;
-
-         //intermediate function
-         intermediate.position.x = FOCAL_LENGTH * (p1.pos3d.x / p1.depth) + SCREEN_WIDTH/2;
-         intermediate.position.y = FOCAL_LENGTH * (p1.pos3d.y / p1.depth) + SCREEN_HEIGHT/2;
-         intermediate.depth = 1;
-         intermediate.pos3d = vec4((p1.pos3d.x / p1.depth), (p1.pos3d.y / p1.depth)*1, 1,1);
-
-
+         Intermediate(p1, p2, intermediate, edgeVertices);
 
          clippedPixels.push_back(intermediate);
-         clippedPixels.push_back(p1);
+         clippedPixels.push_back(p2);
       }
+      p1 = p2;
    }
+   trianglePixels = clippedPixels;
 }
 
-bool isOnScreen(Pixel& pixel, vec2 * edgeBounds){
+bool isOnScreen(Pixel& pixel, vector<vec2> edgeBounds){
    /* Top edge */
     if ((edgeBounds[0].x > edgeBounds[1].x) && (pixel.position.y >= edgeBounds[0].y)) {
         return true;
@@ -437,23 +457,64 @@ bool isOnScreen(Pixel& pixel, vec2 * edgeBounds){
     return false;
 }
 
-void Intermediate(Pixel& p1, Pixel& p2, Pixel& Intermediate, vec2 edgeVertices){
+void Intermediate(Pixel& p1, Pixel& p2, Pixel& Intermediate, vector<vec2> edgeVertices){
 
    //Top
-   if(edgeVertices[0].y > edgeVertices[1].y){
+   if(edgeVertices[0].x > edgeVertices[1].x){
       float TotalDist = glm::abs(p1.position.y - p2.position.y);
       float FractDist = p1.position.y;
       float scale = FractDist / TotalDist;
 
-      vec3
+      vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
+      vec2 pixel2( (float) p2.position.x, (float) p2.position.y );
 
+      Intermediate.position = (scale * ( pixel2 - pixel1) + pixel1);
+      Intermediate.depth = scale * (p2.depth - p1.depth) + p1.depth;
+      Intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
+      Intermediate.pos3d.w = 1;
    }
-
    //Left
+   else if(edgeVertices[0].y > edgeVertices[1].y){
+      float TotalDist = glm::abs(p1.position.x - p2.position.x);
+      float FractDist = p1.position.x;
+      float scale = FractDist / TotalDist;
 
-   //Bottom
+      vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
+      vec2 pixel2( (float) p2.position.x, (float) p2.position.y );
 
+      Intermediate.position = (scale * (pixel2 - pixel1) + pixel1);
+      Intermediate.depth = scale * (p2.depth - p1.depth) + p1.depth;
+      Intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
+      Intermediate.pos3d.w = 1;
+   }
    //Right
+   else if(edgeVertices[0].y > edgeVertices[1].y){
+      float TotalDist = glm::abs(p1.position.x - p2.position.x);
+      float FractDist = p1.position.x;
+      float scale = FractDist / TotalDist;
+
+      vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
+      vec2 pixel2( (float) p2.position.x, (float) p2.position.y );
+
+      Intermediate.position = (scale * (pixel2 - pixel1) + pixel1);
+      Intermediate.depth = scale * (p2.depth - p1.depth) + p1.depth;
+      Intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
+      Intermediate.pos3d.w = 1;
+   }
+   //Bottom
+   else if(edgeVertices[1].x > edgeVertices[0].x){
+      float TotalDist = glm::abs(p1.position.y - p2.position.y);
+      float FractDist = p1.position.y;
+      float scale = FractDist / TotalDist;
+
+      vec2 pixel1( (float) p1.position.x, (float) p1.position.y );
+      vec2 pixel2( (float) p1.position.x, (float) p1.position.y );
+
+      Intermediate.position = (scale * (pixel2 - pixel1) + pixel1);
+      Intermediate.depth = scale * (p2.depth - p1.depth) + p1.depth;
+      Intermediate.pos3d = scale * (p2.pos3d - p1.pos3d) + p1.pos3d;
+      Intermediate.pos3d.w = 1;
+   }
 }
 
 /*Place updates of parameters here*/
