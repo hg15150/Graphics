@@ -4,6 +4,7 @@
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 #include <stdint.h>
+#include <omp.h>
 
 using namespace std;
 using glm::vec3;
@@ -13,12 +14,12 @@ using glm::mat4;
 
 SDL_Event event;
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 256
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 512
 // #define SCREEN_WIDTH 1920
 // #define SCREEN_HEIGHT 1080
 
-#define FULLSCREEN_MODE true
+#define FULLSCREEN_MODE false
 vec4 cameraPos(0,0,-3,1);
 int rotL=0;
 int rotU=0;
@@ -83,11 +84,12 @@ void Draw(screen* screen, vector<Triangle>& triangles)
   int halfScreenWidth = SCREEN_WIDTH/2;
   int halfScreenHeight = SCREEN_HEIGHT/2;
 
-  for(float i=0.f; i<SCREEN_WIDTH; i++){
+  #pragma omp parallel for
+  for(int i=0.f; i<SCREEN_WIDTH; i++){
     for (float j = 0.f; j < SCREEN_HEIGHT; j++) {
 
       //Calculate ray direction { d = x - W/2, y - H/2, f, 1}
-      vec4 rayDirection(i - halfScreenWidth, j - halfScreenHeight, focalLength, 1);
+      vec4 rayDirection((float)i - halfScreenWidth, j - halfScreenHeight, focalLength, 1);
 
       //Calculate closestIntersection
       Intersection intersection;
@@ -121,11 +123,14 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 /*Place updates of parameters here*/
 bool Update(vector<Triangle>& triangles)
 {
-  // static int t = SDL_GetTicks();
-  // /* Compute frame time */
-  // int t2 = SDL_GetTicks();
-  // float dt = float(t2-t);
-  // t = t2;
+  static int t = SDL_GetTicks();
+  /* Compute frame time */
+  int t2 = SDL_GetTicks();
+  float dt = float(t2-t);
+  t = t2;
+
+  std::cout << "Render time: " << dt << " ms." << std::endl;
+
 
   SDL_Event e;
   while(SDL_PollEvent(&e))
