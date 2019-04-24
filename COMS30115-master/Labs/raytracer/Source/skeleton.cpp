@@ -13,10 +13,12 @@ using glm::mat4;
 
 SDL_Event event;
 
-// #define SCREEN_WIDTH 320
-// #define SCREEN_HEIGHT 256
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 512
+// #define SCREEN_WIDTH 32
+// #define SCREEN_HEIGHT 25
+// #define SCREEN_WIDTH 640
+// #define SCREEN_HEIGHT 512
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 1024
 
 #define FULLSCREEN_MODE true
 vec4 cameraPos(0,0,-3,1);
@@ -53,8 +55,23 @@ int main( int argc, char* argv[] )
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   vector<Triangle> triangles; //Array of all triangles in the image
+  Sphere sphere = Sphere( glm::vec4(0, 0, -2, 1), 0.1f );
   LoadTestModel( triangles );
-  //Intersections =  (Intersection*)malloc(sizeof(Intersection) * (SCREEN_WIDTH*SCREEN_HEIGHT));
+
+  for (uint i = 0; i < sphere.indices.size(); i++)
+    {
+        triangles.push_back(
+           Triangle(
+             sphere.points[sphere.indices[i].x],
+             sphere.points[sphere.indices[i].y],
+             sphere.points[sphere.indices[i].z],
+             vec3(1,0,1),
+             Rough
+            )
+         );
+    }
+
+  // Intersections =  (Intersection*)malloc(sizeof(Intersection) * (SCREEN_WIDTH*SCREEN_HEIGHT));
     // Draw(screen);
     // SDL_Renderframe(screen);
     while ( Update(triangles))
@@ -62,6 +79,14 @@ int main( int argc, char* argv[] )
       Draw(screen,triangles);
       SDL_Renderframe(screen);
     }
+
+    // for (size_t i = 0; i < spherePoints.points.size(); i++) {
+    //    printf("%d %.2f %.2f %.2f\n",i, spherePoints.points[i].x,spherePoints.points[i].y,spherePoints.points[i].z);
+    // }
+
+    // for (size_t i = 0; i < spherePoints.indices.size(); i++) {
+    //    printf("%d %.2f %.2f %.2f\n",i, spherePoints.indices[i].x, spherePoints.indices[i].y,spherePoints.indices[i].z);
+    // }
 
 
   SDL_SaveImage( screen, "screenshot.bmp" );
@@ -205,7 +230,6 @@ vec3 DirectLight( const Intersection& i, vector<Triangle>& triangles){
    else return ((lightColor * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)));
 }
 
-
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
   float x = rotation.x;
   float y = rotation.y;
@@ -278,4 +302,10 @@ bool ClosestIntersection(vec4 s, vec4 dir, const vector<Triangle>& triangles, In
   }
 
 return intersectionOccurred;
+}
+
+void Specular(vec3 r, vec3 v, Triangle& triangle, vec3 i){
+   // i = pow((glm::dot(r, v)), triangle.material);
+
+
 }
