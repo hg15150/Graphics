@@ -9,7 +9,29 @@
 #define PI 3.14159265359
 
 
-enum Material { Glass, Mirror, Rough };
+// enum Material { Glass , Mirror, Rough };
+
+struct Material
+   {
+      float amb;
+      float diff;
+      float spec;
+      float shi;
+      float emit;
+   };
+
+Material Glass = { .amb = 0.1, .diff = 0.05, .spec = 0.9};
+Material Rough = { .amb = 0.1, .diff = 0.8, .spec = 0};
+Material Mirror = { .amb = 0, .diff = 0, .spec = 1};
+
+struct Light
+   {
+		glm::vec3 brightness;
+      glm::vec3 amb;
+      glm::vec3 diff;
+      glm::vec3 spec;
+      glm::vec4 pos;
+   };
 
 class Sphere
 {
@@ -19,8 +41,8 @@ public:
 	std::vector<glm::vec4> points;
 	std::vector<glm::vec3> indices;
 
-	uint sectorCount = 90;
-	uint stackCount = 90;
+	uint sectorCount = 24;
+	uint stackCount = 24;
 
 	float sectorStep = 2*PI / sectorCount;
 	float stackStep = PI / stackCount;
@@ -35,7 +57,7 @@ public:
 
 	void ComputePoints()
 	{
-		points.push_back(c + glm::vec4(0, -r, 0, 1));
+		points.push_back(c + glm::vec4(0, -r, 0, 0));
 		for (uint i = 1; i < stackCount; i++) {
 			stackAngle = PI - i*stackStep;
 			xz = r * sinf(stackAngle);
@@ -46,12 +68,9 @@ public:
 			for (uint j = 0; j < sectorCount; j++) {
 				sectorAngle = 2*PI - j * sectorStep;
 
-
-
 				//vertex
 				x = xz * cosf(sectorAngle);
 				z = xz * sinf(sectorAngle);
-
 
 				points.push_back(c + glm::vec4(x, y, z, 0));
 			}
@@ -188,24 +207,24 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	H = vec4( 82,165,225,1);
 
 	// Front
-	triangles.push_back( Triangle(E,B,A,red, Rough) );
-	triangles.push_back( Triangle(E,F,B,red, Rough) );
+	triangles.push_back( Triangle(E,B,A,red, Glass) );
+	triangles.push_back( Triangle(E,F,B,red, Glass) );
 
 	// Front
-	triangles.push_back( Triangle(F,D,B,red, Rough) );
-	triangles.push_back( Triangle(F,H,D,red, Rough) );
+	triangles.push_back( Triangle(F,D,B,red, Glass) );
+	triangles.push_back( Triangle(F,H,D,red, Glass) );
 
 	// BACK
-	triangles.push_back( Triangle(H,C,D,red, Rough) );
-	triangles.push_back( Triangle(H,G,C,red, Rough) );
+	triangles.push_back( Triangle(H,C,D,red, Glass) );
+	triangles.push_back( Triangle(H,G,C,red, Glass) );
 
 	// LEFT
-	triangles.push_back( Triangle(G,E,C,red, Rough) );
-	triangles.push_back( Triangle(E,A,C,red, Rough) );
+	triangles.push_back( Triangle(G,E,C,red, Glass) );
+	triangles.push_back( Triangle(E,A,C,red, Glass) );
 
 	// TOP
-	triangles.push_back( Triangle(G,F,E,red, Rough) );
-	triangles.push_back( Triangle(G,H,F,red, Rough) );
+	triangles.push_back( Triangle(G,F,E,red, Glass) );
+	triangles.push_back( Triangle(G,H,F,red, Glass) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block

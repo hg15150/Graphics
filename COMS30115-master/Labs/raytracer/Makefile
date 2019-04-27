@@ -24,7 +24,7 @@ SDL_LDFLAGS := $(shell sdl2-config --libs)
 ########
 #   This is the default action
 all:Build
-
+debug:debug
 
 ########
 #   Object list
@@ -42,6 +42,9 @@ $(B_DIR)/$(FILE).o : $(S_DIR)/$(FILE).cpp $(S_DIR)/SDLauxiliary.h $(S_DIR)/TestM
 #   Main build rule     
 Build : $(OBJ) Makefile
 	$(CC) $(LN_OPTS) -o $(EXEC) $(OBJ) $(SDL_LDFLAGS)
+
+debug : $(OBJ) Makefile
+	$(CC) $(LN_OPTS) -o $(EXEC) $(OBJ) $(SDL_LDFLAGS) -g
 
 
 clean:
