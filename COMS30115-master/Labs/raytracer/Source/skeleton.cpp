@@ -13,12 +13,14 @@ using glm::mat4;
 
 SDL_Event event;
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 250
-// #define SCREEN_WIDTH 640
-// #define SCREEN_HEIGHT 512
+// #define SCREEN_WIDTH 32
+// #define SCREEN_HEIGHT 25
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 512
 // #define SCREEN_WIDTH 1280
 // #define SCREEN_HEIGHT 1024
+
+#define NUMBEROFLIGHTS 1
 
 #define FULLSCREEN_MODE true
 vec4 cameraPos(0,0,-3,1);
@@ -27,6 +29,7 @@ int rotU=0;
 
 vec4 lightPos( 0, -0.5, -0.7, 1.0 );
 vec3 lightColor = 14.f * vec3( 1, 1, 1 );
+vec3 indirectLight = 0.2f*vec3( 1, 1, 1 );
 
 
 struct Intersection
@@ -38,11 +41,8 @@ struct Intersection
      vec4 normal;
      vec4 lightRay;
      vec4 reflectedRay;
-     float brightness;
+     Light light;
   };
-
-
-//Intersection* Intersections = NULL;
 
 // -----------------------------------------------------------------------------
 
@@ -50,12 +50,13 @@ bool Update(vector<Triangle>& triangles);
 void Draw(screen* screen,vector<Triangle>& triangles);
 bool ClosestIntersection(vec4 start, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection );
 float calcDistance(vec3 start, vec3 intersection);
-vec3 DirectLight( Intersection& i, vector<Triangle>& triangles);
+void DirectLight( Intersection& i, vector<Triangle>& triangles);
 bool xChecker(vec3 x);
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation);
 void moveLight(vec4 rotation,  vec4 translation);
-void Specular(Intersection& i);
+float Specular(Intersection& i, Material material);
 void SetReflection(Intersection& i);
+void TheBigDaddy(Intersection& i, Material material);
 
 // -----------------------------------------------------------------------------
 
@@ -131,11 +132,10 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 
       //Intersections[j + i*SCREEN_WIDTH] = intersection;
       vec3 brightness(0.0, 0.0, 0.0);
-      vec3 indirectLight = 0.2f*vec3( 1, 1, 1 );
 
       if(intersection.triangleIndex < (float) triangles.size()){
          intersection.cameraRay = rayDirection;
-         brightness = DirectLight(intersection, triangles);
+         DirectLight(intersection, triangles);
       }
 
 
@@ -143,14 +143,20 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 
       if(isIntersection)
       {
-        //Get intersected triangle
-        Triangle closestIntersectedTriangle = triangles[intersection.triangleIndex];
-        Specular(intersection);
-        brightness += vec3(intersection.brightness);
+         //Get intersected triangle
+         Triangle closestIntersectedTriangle = triangles[intersection.triangleIndex];
+         if(closestIntersectedTriangle.material.type == GlassType){
+             TheBigDaddy(intersection, Glass);
+
+         }
+         else if(closestIntersectedTriangle.material.type == RoughType){
+            TheBigDaddy(intersection, Rough);
+         }
+         // brightness += intersection.light.brightness;
          // colour = (intersection.brightness + indirectLight) * closestIntersectedTriangle.color;
-        brightness += (indirectLight * 0.5f);
-        colour = brightness*closestIntersectedTriangle.color;
-      }
+         // brightness += (indirectLight * 0.5f);
+         colour = intersection.light.brightness*closestIntersectedTriangle.color;
+         }
 
       PutPixelSDL(screen, i, j, colour);
     }
@@ -247,22 +253,20 @@ bool Update(vector<Triangle>& triangles)
   return true;
 }
 
-vec3 DirectLight( Intersection& i, vector<Triangle>& triangles){
+void DirectLight( Intersection& i, vector<Triangle>& triangles){
    // printf("Intersection value = %d\n",i.triangleIndex );
    vec4 normal = triangles[i.triangleIndex].normal; //Surface normal
    float r = glm::distance(lightPos, i.position);   //Distance from light source to Intersection
    vec4 reflection = (lightPos - i.position) / r;  //Unit vector of reflection
 
    i.normal = normal;
-   // i.reflectedRay = lightPos - i.position;
    i.lightRay = reflection;
 
    Intersection newIntersection;
    bool isIntersection = ClosestIntersection(i.position + (reflection/1000.f), reflection, triangles, newIntersection);
 
-   if(r > newIntersection.distance && isIntersection) return vec3(0,0,0);
-
-   else return ((lightColor * max(dot(reflection, normal), 0.f)) / (float)(4*3.1415*pow(r,2)))*0.5f;
+   if(r > newIntersection.distance && isIntersection) i.light.diff = vec3(0,0,0);
+   else i.light.diff = (lightColor * max(dot(i.lightRay, i.normal), 0.f)) / (float) (4*PI*pow(r,2));
 }
 
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
@@ -354,34 +358,40 @@ bool ClosestIntersection(vec4 s, vec4 dir, const vector<Triangle>& triangles, In
 return intersectionOccurred;
 }
 
-void Specular(Intersection& i){
-
-   //i = (dot(r, v))^(mshi) . m . s
-
-   SetReflection(i);
-   // printf("Before: (%.2f, %.2f, %.2f)\n", i.reflectedRay.x, i.reflectedRay.y, i.reflectedRay.z );
-
-   i.brightness = (
-                     glm::pow(glm::max( glm::dot( i.reflectedRay , glm::normalize(i.cameraRay)), 0.f ), 50) * 10
-                     /
-                     4 * PI * glm::pow(glm::distance(lightPos, i.position),2)
-                  );
+float Specular(Intersection& i, Material material){
 
 
-   // printf("%.2f\n", glm::max( glm::dot(glm::normalize(reflection), glm::normalize(i.incomingRay)), 0.f ) );
-   // printf("%.3f\n", glm::dot(glm::normalize(reflection), glm::normalize(i.reflectedRay)) );
-
-   // i.brightness = glm::abs(i.brightness);
-   // printf("%.2f\n", i.brightness);
-
-}
-
-void Diffuse(Intersection& i){
-   //i = max( 0, dot(normal, angleOfLight)) . m . s
-   // i.brightness = glm::max()
+   return (
+      (glm::pow(glm::max( glm::dot( i.reflectedRay , glm::normalize(i.cameraRay)), 0.f ), material.shi))
+      /
+      4 * PI * glm::pow(glm::distance(lightPos, i.position), 2)
+   );
 }
 
 void SetReflection(Intersection& i){
    i.reflectedRay = glm::reflect(i.lightRay, i.normal);
    i.reflectedRay.w = 1;
+}
+
+void TheBigDaddy(Intersection& i, Material material){
+   for(uint j = 0; j < NUMBEROFLIGHTS; j++ ){
+
+      SetReflection(i);
+
+      vec3 diff = i.light.diff * material.diff;
+      // vec3 spec = vec3(Specular(i, material) * material.spec);
+
+      vec3 amb = indirectLight * material.amb;
+
+      float sp = (Specular(i, material));
+      vec3 spec = vec3(sp * material.spec);
+//       if(material.type == GlassType ){
+//       printf(" %.2f %.2f %.2f\n", sp, material.diff, material.amb);
+// }
+      i.light.brightness = (
+                              amb + diff + spec
+                           );
+
+   }
+
 }

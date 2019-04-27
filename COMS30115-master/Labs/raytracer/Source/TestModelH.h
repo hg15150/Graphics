@@ -9,20 +9,21 @@
 #define PI 3.14159265359
 
 
-// enum Material { Glass , Mirror, Rough };
+enum MaterialType { GlassType , MirrorType, RoughType };
 
 struct Material
    {
-      float amb;
+		MaterialType type;
+		float amb;
       float diff;
       float spec;
       float shi;
       float emit;
    };
 
-Material Glass = { .amb = 0.1, .diff = 0.05, .spec = 0.9};
-Material Rough = { .amb = 0.1, .diff = 0.8, .spec = 0};
-Material Mirror = { .amb = 0, .diff = 0, .spec = 1};
+Material Glass = { .type = GlassType,.amb = 0.5, .diff = 0.5, .spec = 50 , .shi = 15 };
+Material Rough = {  .type = RoughType,.amb = 1, .diff = 0.8, .spec = 0.0, .shi = 2};
+Material Mirror = { .type = MirrorType,.amb = 0, .diff = 0, .spec = 1, .shi = 100};
 
 struct Light
    {
