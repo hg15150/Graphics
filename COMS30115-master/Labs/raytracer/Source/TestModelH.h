@@ -23,7 +23,7 @@ struct Material
 
 Material Glass = { .type = GlassType,.amb = 0.5, .diff = 0.5, .spec = 50 , .shi = 15 };
 Material Rough = {  .type = RoughType,.amb = 1, .diff = 0.8, .spec = 0.0, .shi = 2};
-Material Mirror = { .type = MirrorType,.amb = 0, .diff = 0, .spec = 1, .shi = 100};
+Material Mirror = { .type = MirrorType,.amb = 0.9, .diff = 0.9, .spec = 10, .shi = 10};
 
 struct Light
    {
@@ -179,8 +179,8 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	triangles.push_back( Triangle( C, D, B, green, Rough ) );
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, purple, Rough ) );
-	triangles.push_back( Triangle( C, E, G, purple, Rough ) );
+	triangles.push_back( Triangle( A, E, C, purple, Mirror ) );
+	triangles.push_back( Triangle( C, E, G, purple, Mirror ) );
 
 	// Right wall
 	triangles.push_back( Triangle( F, B, D, yellow, Rough ) );

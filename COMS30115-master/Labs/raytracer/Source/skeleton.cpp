@@ -52,6 +52,7 @@ struct Intersection
 bool Update(vector<Triangle>& triangles);
 void Draw(screen* screen,vector<Triangle>& triangles);
 bool ClosestIntersection(vec4 start, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection );
+bool ClosestIntersectionMirror(vec4 start, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection, uint ignore );
 float calcDistance(vec3 start, vec3 intersection);
 void DirectLight( Intersection& i, vector<Triangle>& triangles);
 bool xChecker(vec3 x);
@@ -60,6 +61,7 @@ void moveLight(vec4 rotation,  vec4 translation);
 float Specular(Intersection& i, Material material);
 void SetReflection(Intersection& i);
 void TheBigDaddy(Intersection& i, Material material);
+void TheBigReflectionDaddy(Intersection& i, Material material, vector<Triangle>& triangles);
 
 // -----------------------------------------------------------------------------
 
@@ -70,18 +72,18 @@ int main( int argc, char* argv[] )
   vector<Triangle> triangles; //Array of all triangles in the image
   Sphere sphere = Sphere( glm::vec4(0.5, 0, 0, 1), 0.3f );
   LoadTestModel( triangles );
-  for (uint i = 0; i < sphere.indices.size(); i++)
-      {
-          triangles.push_back(
-             Triangle(
-               sphere.points[sphere.indices[i].x],
-               sphere.points[sphere.indices[i].y],
-               sphere.points[sphere.indices[i].z],
-               vec3(1,0,1),
-               Glass
-              )
-           );
-      }
+  // for (uint i = 0; i < sphere.indices.size(); i++)
+  //     {
+  //         triangles.push_back(
+  //            Triangle(
+  //              sphere.points[sphere.indices[i].x],
+  //              sphere.points[sphere.indices[i].y],
+  //              sphere.points[sphere.indices[i].z],
+  //              vec3(1,0,1),
+  //              Glass
+  //             )
+  //          );
+  //     }
 
   // Intersections =  (Intersection*)malloc(sizeof(Intersection) * (SCREEN_WIDTH*SCREEN_HEIGHT));
     // Draw(screen);
@@ -158,16 +160,26 @@ void Draw(screen* screen, vector<Triangle>& triangles)
          Triangle closestIntersectedTriangle = triangles[intersection.triangleIndex];
          if(closestIntersectedTriangle.material.type == GlassType){
              TheBigDaddy(intersection, Glass);
+             colour = intersection.light.brightness*closestIntersectedTriangle.color;
+
 
          }
          else if(closestIntersectedTriangle.material.type == RoughType){
             TheBigDaddy(intersection, Rough);
+            colour = intersection.light.brightness*closestIntersectedTriangle.color;
+
+         }
+         else if(closestIntersectedTriangle.material.type == MirrorType){
+            TheBigReflectionDaddy(intersection, Mirror, triangles);
+            closestIntersectedTriangle = triangles[intersection.triangleIndex];
+            colour = closestIntersectedTriangle.color;
+            // printf(" Outtest %.2f %.2f %.2f %u  \n", colour.x,colour.y,colour.z,closestIntersectedTriangle);
+
          }
          // brightness += intersection.light.brightness;
          // colour = (intersection.brightness + indirectLight) * closestIntersectedTriangle.color;
          // brightness += (indirectLight * 0.5f);
-         colour = intersection.light.brightness*closestIntersectedTriangle.color;
-         }
+        }
 
       PutPixelSDL(screen, i, j, colour);
     }
@@ -397,6 +409,53 @@ bool ClosestIntersection(vec4 s, vec4 dir, const vector<Triangle>& triangles, In
 return intersectionOccurred;
 }
 
+
+bool ClosestIntersectionMirror(vec4 s, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection, uint ignore ){
+
+  bool intersectionOccurred = false;
+ closestIntersection.distance = std::numeric_limits<float>::max();
+
+ for (size_t i = 0; i < triangles.size(); i++) {
+   if(i == ignore) continue;
+   // closestIntersection.triangleIndex = -1;
+
+   //Extract triangle vertices
+   vec4 v0 = triangles[i].v0;
+   vec4 v1 = triangles[i].v1;
+   vec4 v2 = triangles[i].v2;
+
+   //Determine axis of the plane that the triangle lies within
+   vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
+   vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
+
+   //Calculate start of ray - vertex 0
+   vec3 b = vec3(s.x-v0.x,s.y-v0.y,s.z-v0.z);
+
+   //Create matrix
+   mat3 A( -vec3(dir), e1, e2 );
+
+   //Calculate Intersection
+   vec3 x = inverse(A) * b;
+
+   //If Intersection is within triangle, calculate distance
+   if(xChecker(x)){
+     intersectionOccurred = true; //At least one intersection occurred
+     vec3 start(s.x, s.y, s.z);   //Convert start vector to 3D
+     // float distance = glm::distance(start, x);
+     float distance = x.x;
+
+     //Overwrite closestIntersection
+     if(distance < closestIntersection.distance){
+       closestIntersection.position =  s + distance*dir;
+       closestIntersection.distance = distance;
+       closestIntersection.triangleIndex = i;
+     }
+   }
+ }
+
+return intersectionOccurred;
+}
+
 float Specular(Intersection& i, Material material){
 
 
@@ -408,8 +467,12 @@ float Specular(Intersection& i, Material material){
 }
 
 void SetReflection(Intersection& i){
-   i.reflectedRay = glm::reflect(i.lightRay, i.normal);
+   i.reflectedRay = glm::normalize(glm::reflect(i.lightRay, i.normal));
    i.reflectedRay.w = 1;
+}
+
+vec4 reflect(vec4 normal, vec4 dir){
+  return dir - 2 * glm::dot(dir, normal) * normal;
 }
 
 void TheBigDaddy(Intersection& i, Material material){
@@ -430,6 +493,42 @@ void TheBigDaddy(Intersection& i, Material material){
       i.light.brightness = (
                               amb + diff + spec
                            );
+
+   }
+
+}
+
+void TheBigReflectionDaddy(Intersection& i, Material material, vector<Triangle>& triangles){
+   for(uint j = 0; j < NUMBEROFLIGHTS; j++ ){
+
+      vec4 r = reflect(i.normal, i.cameraRay);
+
+      Intersection newIntersection;
+      bool isIntersection = ClosestIntersectionMirror(i.position + vec4(2.f,0,0,0), r, triangles, newIntersection, i.triangleIndex);
+      // if(!isIntersection) isIntersection = ClosestIntersectionMirror(i.position, r, triangles, newIntersection, i.triangleIndex);
+
+
+      if(isIntersection){
+
+      if(newIntersection.triangleIndex < (float) triangles.size()){
+         float sectionSize = (lightHeight/sizeOfLight);
+         lightPos = lightPos;
+         DirectLight(newIntersection, triangles);
+
+
+
+      vec3 diff =  newIntersection.light.diff * material.diff;
+      // vec3 spec = vec3(Specular(i, material) * material.spec);
+
+      vec3 amb = indirectLight * material.amb;
+
+      i.light.brightness = amb + diff;
+      i.triangleIndex = newIntersection.triangleIndex;
+    }
+
+  };
+
+
 
    }
 
