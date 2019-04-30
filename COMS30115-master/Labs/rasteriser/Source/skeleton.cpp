@@ -78,7 +78,6 @@ void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices, int x);
 bool isOnScreen(Pixel& pixel, vector<vec2> edgeVertices);
 void Intermediate(Pixel& p1, Pixel& p2, Pixel& intermediate, vector<vec2> edgeVertices, int side);
 
-
 int main( int argc, char* argv[] )
 {
 
