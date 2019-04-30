@@ -42,8 +42,8 @@ public:
 	std::vector<glm::vec4> points;
 	std::vector<glm::vec3> indices;
 
-	uint sectorCount = 24;
-	uint stackCount = 24;
+	uint sectorCount = 12;
+	uint stackCount = 12;
 
 	float sectorStep = 2*PI / sectorCount;
 	float stackStep = PI / stackCount;

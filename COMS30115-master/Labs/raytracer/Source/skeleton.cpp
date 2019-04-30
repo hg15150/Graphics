@@ -29,6 +29,8 @@ int rotL=0;
 int rotU=0;
 
 vec4 lightPos( 0, -0.5, -0.7, 1.0 );
+int sizeOfLight = 2;
+float lightHeight = 0.2;
 vec3 lightColor = 14.f * vec3( 1, 1, 1 );
 vec3 indirectLight = 0.2f*vec3( 1, 1, 1 );
 
@@ -66,7 +68,7 @@ int main( int argc, char* argv[] )
 
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   vector<Triangle> triangles; //Array of all triangles in the image
-  Sphere sphere = Sphere( glm::vec4(0.5, 0.5, 0, 1), 0.3f );
+  Sphere sphere = Sphere( glm::vec4(0.5, 0, 0, 1), 0.3f );
   LoadTestModel( triangles );
   for (uint i = 0; i < sphere.indices.size(); i++)
       {
@@ -137,7 +139,14 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 
       if(intersection.triangleIndex < (float) triangles.size()){
          intersection.cameraRay = rayDirection;
+         float sectionSize = (lightHeight/sizeOfLight);
+         for(int i=0; i<sizeOfLight; i++)
+         {
+           for (int j = 0; j < sizeOfLight; j++)
+           {
+         lightPos = vec4( 0 - (0.5 * lightHeight) + i * sectionSize, -0.5 - (0.5 * lightHeight) + j * sectionSize, -0.7, 1.0 );
          DirectLight(intersection, triangles);
+       }}
       }
 
 
@@ -270,8 +279,8 @@ void DirectLight( Intersection& i, vector<Triangle>& triangles){
    Intersection newIntersection;
    bool isIntersection = ClosestIntersection(i.position + (reflection/1000.f), reflection, triangles, newIntersection);
 
-   if(r > newIntersection.distance && isIntersection) i.light.diff = vec3(0,0,0);
-   else i.light.diff = (lightColor * max(dot(i.lightRay, i.normal), 0.f)) / (float) (4*PI*pow(r,2));
+   if(r > newIntersection.distance && isIntersection) i.light.diff += vec3(0,0,0);
+   else i.light.diff += (1.f/(float)(sizeOfLight * sizeOfLight)) * (lightColor * max(dot(i.lightRay, i.normal), 0.f)) / (float) (4*PI*pow(r,2));
 }
 
 void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
@@ -340,22 +349,47 @@ bool ClosestIntersection(vec4 s, vec4 dir, const vector<Triangle>& triangles, In
 
     //Create matrix
     mat3 A( -vec3(dir), e1, e2 );
+    mat3 Ax( b , e1, e2 );
+
+
+
+
+    float determinantA = glm::determinant(A);
+    float determinantAx = glm::determinant(Ax);
+
+    float x = determinantAx/determinantA;
+    if(x < 0) continue;
+
+
 
     //Calculate Intersection
-    vec3 x = inverse(A) * b;
+    // vec3 xy = inverse(A) * b;
 
     //If Intersection is within triangle, calculate distance
-    if(xChecker(x)){
-      intersectionOccurred = true; //At least one intersection occurred
-      vec3 start(s.x, s.y, s.z);   //Convert start vector to 3D
+
+      mat3 Ay( -vec3(dir) , b, e2 );
+      float determinantAy = glm::determinant(Ay);
+      float y = determinantAy/determinantA;
+      if(y >= 0){
+
+
+        mat3 Az( -vec3(dir) , e1, b );
+
+        float determinantAz = glm::determinant(Az);
+        float z = determinantAz/determinantA;
+        if ((z >= 0) && ( (y + z) < 1)){
+
+          intersectionOccurred = true; //At least one intersection occurred
+    //  vec3 start(s.x, s.y, s.z);   //Convert start vector to 3D
       // float distance = glm::distance(start, x);
-      float distance = x.x;
+        float distance = x;
 
       //Overwrite closestIntersection
-      if(distance < closestIntersection.distance){
-        closestIntersection.position =  s + distance*dir;
-        closestIntersection.distance = distance;
-        closestIntersection.triangleIndex = i;
+        if(distance < closestIntersection.distance){
+          closestIntersection.position =  s + distance*dir;
+          closestIntersection.distance = distance;
+          closestIntersection.triangleIndex = i;
+        }
       }
     }
   }
