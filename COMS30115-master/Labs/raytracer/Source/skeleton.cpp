@@ -29,6 +29,7 @@ int rotL=0;
 int rotU=0;
 
 vec4 lightPos( 0, -0.5, -0.7, 1.0 );
+vec4 lightPosX;
 int sizeOfLight = 2;
 float lightHeight = 0.2;
 vec3 lightColor = 14.f * vec3( 1, 1, 1 );
@@ -145,7 +146,7 @@ void Draw(screen* screen, vector<Triangle>& triangles)
          {
            for (int j = 0; j < sizeOfLight; j++)
            {
-         lightPos = vec4( 0 - (0.5 * lightHeight) + i * sectionSize, -0.5 - (0.5 * lightHeight) + j * sectionSize, -0.7, 1.0 );
+         lightPosX = vec4( lightPos.x - (0.5 * lightHeight) + i * sectionSize, lightPos.y - (0.5 * lightHeight) + j * sectionSize, lightPos.z, 1.0 );
          DirectLight(intersection, triangles);
        }}
       }
@@ -214,7 +215,7 @@ bool Update(vector<Triangle>& triangles)
         /* Move camera forward */
         break;
            case SDLK_w:
-     moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.f,0.f,0.1f,1.f));		/* Move camera backwards */
+           moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.f,0.f,0.1f,1.f));		/* Move camera backwards */
         break;
            case SDLK_d:
            moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.1f,0.f,0.f,1.f));		/* Move camera backwards */
@@ -225,7 +226,7 @@ bool Update(vector<Triangle>& triangles)
 
        break;
        case SDLK_q:
-       moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.f,-0.1f,0.f,1.f));		/* Move camera backwards */
+            moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.f,-0.1f,0.f,1.f));		/* Move camera backwards */
 
        break;
       case SDLK_e:
@@ -280,8 +281,8 @@ bool Update(vector<Triangle>& triangles)
 void DirectLight( Intersection& i, vector<Triangle>& triangles){
    // printf("Intersection value = %d\n",i.triangleIndex );
    vec4 normal = triangles[i.triangleIndex].normal; //Surface normal
-   float r = glm::distance(lightPos, i.position);   //Distance from light source to Intersection
-   vec4 reflection = (lightPos - i.position) / r;  //Unit vector of reflection
+   float r = glm::distance(lightPosX, i.position);   //Distance from light source to Intersection
+   vec4 reflection = (lightPosX - i.position) / r;  //Unit vector of reflection
 
    i.normal = normal;
    i.lightRay = reflection;
@@ -303,11 +304,13 @@ void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
 
 
   mat4 rotationMatrix(col1,col2,col3,translation);
+  mat4 rotationMatrixNoTrans(col1,col2,col3,vec4(0,0,0,1));
+
   for (size_t i = 0; i < triangles.size(); i++) {
     triangles[i].v0 = rotationMatrix*triangles[i].v0;
     triangles[i].v1 = rotationMatrix*triangles[i].v1;
     triangles[i].v2 = rotationMatrix*triangles[i].v2;
-    triangles[i].normal = rotationMatrix*triangles[i].normal;
+    triangles[i].normal = rotationMatrixNoTrans*triangles[i].normal;
   }
   lightPos = rotationMatrix*lightPos;
 
