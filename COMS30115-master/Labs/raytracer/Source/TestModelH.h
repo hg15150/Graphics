@@ -125,6 +125,26 @@ public:
 // };
 
 
+bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, float &x1)
+{
+    float discr = b * b - 4 * a * c;
+    if (discr < 0) return false;
+    else if (discr == 0) {
+        x0 = x1 = - 0.5 * b / a;
+    }
+    else {
+        float q = (b > 0) ?
+            -0.5 * (b + sqrt(discr)) :
+            -0.5 * (b - sqrt(discr));
+        x0 = q / a;
+        x1 = c / q;
+    }
+
+    return true;
+}
+
+
+
 class Sphere2 : public Item{
 public:
    float radius;
@@ -133,7 +153,22 @@ public:
    Sphere2( glm::vec4 c, float r, vec3 colours, Material material ) : Item(colour, material), center(c), radius(r) {}
 
    bool intersection(glm::vec4 start, glm::vec4 dir, float& t, glm::vec4& position) override {
-      return(start.x > dir.x);
+      float t0, t1;
+      glm::vec4 L = start - center;
+      float a = glm::dot(dir, dir);
+      float b = 2 * glm::dot(dir, L);
+      float c = glm::dot(L, L) - radius*radius;
+      if (!solveQuadratic(a, b, c, t0, t1)) return false;
+
+      if (t0 > t1) std::swap(t0, t1);
+
+      if (t0 < 0) {
+        t0 = t1;
+        if (t0 < 0) return false;
+      }
+      t = t0;
+      position = start + (dir * t);
+      return true;
    };
 
    glm::vec4 computeNormal( glm::vec4 position) override{
@@ -283,6 +318,10 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	vec4 F(0,L,0,1);
 	vec4 G(L,L,L,1);
 	vec4 H(0,L,L,1);
+
+   //Sphere
+   triangles.push_back( new Sphere2(glm::vec4(0,0,0,1), 0.35, white, Mirror));
+
 
 	// Floor:
 	triangles.push_back( new Triangle( C, B, A, green, Rough ) );

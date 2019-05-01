@@ -255,7 +255,7 @@ bool xChecker(vec3 x){
 }
 
 bool ClosestIntersection(vec4 s, vec4 dir, Intersection& closestIntersection , int index){
-
+   
    bool intersectionOccurred = false;
    closestIntersection.distance = std::numeric_limits<float>::max();
    float t = closestIntersection.distance;
@@ -275,55 +275,6 @@ bool ClosestIntersection(vec4 s, vec4 dir, Intersection& closestIntersection , i
 
    return intersectionOccurred;
 }
-
-// bool ClosestIntersectionMirror(vec4 s, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection, uint ignore ){
-//
-//   bool intersectionOccurred = false;
-//   closestIntersection.distance = std::numeric_limits<float>::max();
-//
-//    for (size_t i = 0; i < triangles.size(); i++) {
-//       if(i == ignore) continue;
-//
-//       vec4 v0 = triangles[i].v0;
-//       vec4 v1 = triangles[i].v1;
-//       vec4 v2 = triangles[i].v2;
-//
-//       vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
-//       vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
-//       vec3 b = vec3(s.x-v0.x,s.y-v0.y,s.z-v0.z);
-//
-//       mat3 A( -vec3(dir), e1, e2 );
-//       mat3 Ax( b , e1, e2 );
-//
-//       float determinantA = glm::determinant(A);
-//       float determinantAx = glm::determinant(Ax);
-//
-//       float x = determinantAx/determinantA;
-//       if(x < 0) continue;
-//
-//       // vec3 xy = inverse(A) * b;
-//
-//       mat3 Ay( -vec3(dir) , b, e2 );
-//       float determinantAy = glm::determinant(Ay);
-//       float y = determinantAy/determinantA;
-//
-//       if(y >= 0){
-//          mat3 Az( -vec3(dir) , e1, b );
-//          float determinantAz = glm::determinant(Az);
-//          float z = determinantAz / determinantA;
-//          if ((z >= 0) && ( (y + z) < 1)){
-//             intersectionOccurred = true; //At least one intersection occurred
-//             float distance = x;
-//             if(distance < closestIntersection.distance){
-//                closestIntersection.position =  s + distance*dir;
-//                closestIntersection.distance = distance;
-//                closestIntersection.triangleIndex = i;
-//             }
-//          }
-//       }
-//    }
-//    return intersectionOccurred;
-// }
 
 float Specular(Intersection& i, Material material){
    // return (
@@ -364,8 +315,6 @@ vec3 calculateColour(Intersection& i, vec4 incidentRay){
 
       case MirrorType:
          colour = mirror(i, incidentRay);
-
-
          // colour = TheBigReflectionDaddy(intersection, Mirror, triangles);
          break;
    }
