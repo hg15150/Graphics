@@ -307,6 +307,7 @@ void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
     triangles[i].v0 = rotationMatrix*triangles[i].v0;
     triangles[i].v1 = rotationMatrix*triangles[i].v1;
     triangles[i].v2 = rotationMatrix*triangles[i].v2;
+    triangles[i].normal = rotationMatrix*triangles[i].normal;
   }
   lightPos = rotationMatrix*lightPos;
 
@@ -471,6 +472,7 @@ vec3 TheBigReflectionDaddy(Intersection& i, Material material, vector<Triangle>&
    vec3 colour;
    for(uint j = 0; j < NUMBEROFLIGHTS; j++ ){
 
+
       vec4 r = reflect(i.normal, i.cameraRay);
       // SetReflection(i);
 
@@ -501,6 +503,7 @@ vec3 TheBigReflectionDaddy(Intersection& i, Material material, vector<Triangle>&
       // }
    }
    return colour;
+
 }
 
 vec3 calculateColour(Triangle triangle, Intersection& intersection, vector<Triangle>& triangles){
