@@ -50,7 +50,7 @@ struct Intersection
 
 bool Update();
 void Draw(screen* screen);
-bool ClosestIntersection(vec4 start, vec4 dir, Intersection& closestIntersection );
+bool ClosestIntersection(vec4 start, vec4 dir, Intersection& closestIntersection, int index );
 // bool ClosestIntersectionMirror(vec4 start, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection, uint ignore );
 float calcDistance(vec3 start, vec3 intersection);
 vec3 DirectLight( Intersection& );
@@ -61,7 +61,7 @@ void moveLight(vec4 rotation,  vec4 translation);
 // void SetReflection(Intersection& i);
 // vec3 TheBigDaddy(Intersection& i, Material material, vector<Triangle>& triangles);
 // vec3 TheBigReflectionDaddy(Intersection& i, Material material, vector<Triangle>& triangles);
-vec3 calculateColour(Intersection& i);
+vec3 calculateColour(Intersection& i, vec4 incidentRay);
 
 // -----------------------------------------------------------------------------
 
@@ -99,10 +99,10 @@ void Draw(screen* screen)
       vec3 colour(0.0, 0.0, 0.0); //Set inititrianglestrianglesal colour of pixel to black
 
       Intersection intersection;
-      bool isIntersection = ClosestIntersection(cameraPos, rayDirection, intersection);
+      bool isIntersection = ClosestIntersection(cameraPos, rayDirection, intersection, -1);
 
       if(isIntersection){
-         colour = calculateColour(intersection);
+         colour = calculateColour(intersection, rayDirection);
       }
       // else printf("Out\n");
       PutPixelSDL(screen, i, j, colour);
@@ -210,12 +210,7 @@ vec3 DirectLight( Intersection& i){
    vec4 reflection = (lightPos - i.position) / r;  //Unit vector of reflection
 
    Intersection newIntersection;
-   bool isIntersection = ClosestIntersection(i.position + reflection*0.00001f, reflection, newIntersection);
-
-   // printf("%.2f %.2f %.2f\n", lightColor.x, lightColor.y, lightColor.z);
-   // printf("Ref: %.2f %.2f %.2f\n", reflection.x, reflection.y, reflection.z);
-   // printf("Nor: %.2f %.2f %.2f\n", normal.x, normal.y, normal.z);
-
+   bool isIntersection = ClosestIntersection(i.position, reflection, newIntersection, i.index);
 
    if(r > newIntersection.distance && isIntersection) return vec3(0,0,0);
    else return (1.f/(float)(sizeOfLight * sizeOfLight)) * (lightColor * max(dot(reflection, normal), 0.f)) / (float) (4*PI*pow(r,2));
@@ -259,7 +254,7 @@ bool xChecker(vec3 x){
   return ( (x.x >= 0) && (x.y >= 0) && (x.z >= 0) && ( (x.y + x.z) < 1) );
 }
 
-bool ClosestIntersection(vec4 s, vec4 dir, Intersection& closestIntersection ){
+bool ClosestIntersection(vec4 s, vec4 dir, Intersection& closestIntersection , int index){
 
    bool intersectionOccurred = false;
    closestIntersection.distance = std::numeric_limits<float>::max();
@@ -267,6 +262,7 @@ bool ClosestIntersection(vec4 s, vec4 dir, Intersection& closestIntersection ){
    vec4 p = vec4(0.f, 0.f, 0.f, 1.f);
 
    for (uint j = 0; j < triangles.size(); j++) {
+      if(j == index) continue;
       if(triangles[j]->intersection(s, dir, t, p)){
          if(t < closestIntersection.distance){
             intersectionOccurred = true;
@@ -343,8 +339,16 @@ vec4 reflect(vec4 normal, vec4 dir){
   return dir - 2 * glm::dot(dir, normal) * normal;
 }
 
+vec3 mirror(Intersection& i, vec4 dir){
+   vec4 reflectedRay = reflect( triangles[i.index]->computeNormal(i.position), dir);
+   Intersection newIntersection;
+   bool isIntersection = ClosestIntersection(i.position, reflectedRay, newIntersection, i.index);
+   if(isIntersection){
+      return calculateColour(newIntersection, reflectedRay);
+   }
+}
 
-vec3 calculateColour(Intersection& i){
+vec3 calculateColour(Intersection& i, vec4 incidentRay){
 
    vec3 colour = vec3(0);
 
@@ -359,9 +363,11 @@ vec3 calculateColour(Intersection& i){
          break;
 
       case MirrorType:
+         colour = mirror(i, incidentRay);
+
 
          // colour = TheBigReflectionDaddy(intersection, Mirror, triangles);
-   break;
+         break;
    }
 
    return colour;
