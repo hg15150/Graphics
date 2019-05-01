@@ -23,7 +23,7 @@ SDL_Event event;
 
 #define NUMBEROFLIGHTS 1
 
-#define FULLSCREEN_MODE false
+#define FULLSCREEN_MODE true
 vec4 cameraPos(0,0,-3,1);
 int rotL=0;
 int rotU=0;
@@ -141,7 +141,14 @@ void Draw(screen* screen, vector<Triangle>& triangles)
 
       if(intersection.triangleIndex < (float) triangles.size()){
          intersection.cameraRay = rayDirection;
-
+         float sectionSize = (lightHeight/sizeOfLight);
+         for(int i=0; i<sizeOfLight; i++)
+         {
+           for (int j = 0; j < sizeOfLight; j++)
+           {
+         lightPosX = vec4( lightPos.x - (0.5 * lightHeight) + i * sectionSize, lightPos.y - (0.5 * lightHeight) + j * sectionSize, lightPos.z, 1.0 );
+         DirectLight(intersection, triangles);
+       }}
       }
 
 
@@ -283,12 +290,7 @@ void DirectLight( Intersection& i, vector<Triangle>& triangles){
    Intersection newIntersection;
    bool isIntersection = ClosestIntersection(i.position + (reflection/1000.f), reflection, triangles, newIntersection);
 
-   if(r > newIntersection.distance && isIntersection){
-     i.light.diff += vec3(0,0,0);
-     if(i.triangleIndex == 2){
-       printf("distance: %.2f, r: %.2f\n", newIntersection.distance, r);
-     }
-   }
+   if(r > newIntersection.distance && isIntersection) i.light.diff += vec3(0,0,0);
    else i.light.diff += (1.f/(float)(sizeOfLight * sizeOfLight)) * (lightColor * max(dot(i.lightRay, i.normal), 0.f)) / (float) (4*PI*pow(r,2));
 }
 
@@ -454,51 +456,31 @@ vec4 reflect(vec4 normal, vec4 dir){
   return dir - 2 * glm::dot(dir, normal) * normal;
 }
 
-vec3 TheBigDaddy(Intersection& intersection, Material material, vector<Triangle>& triangles){
+vec3 TheBigDaddy(Intersection& i, Material material, vector<Triangle>& triangles){
    for(uint j = 0; j < NUMBEROFLIGHTS; j++ ){
 
-     float sectionSize = (lightHeight/sizeOfLight);
-     for(int i=0; i<sizeOfLight; i++)
-     {
-       for (int j = 0; j < sizeOfLight; j++)
-       {
-          lightPosX = vec4( lightPos.x - (0.5 * lightHeight) + i * sectionSize, lightPos.y - (0.5 * lightHeight) + j * sectionSize, lightPos.z, 1.0 );
-          DirectLight(intersection, triangles);
-       }
-     }
-
-      // SetReflection(intersection);
-      vec3 diff = intersection.light.diff * material.diff;
-      // vec3 spec = vec3(Specular(intersection, material) * material.spec);
+      SetReflection(i);
+      vec3 diff = i.light.diff * material.diff;
+      // vec3 spec = vec3(Specular(i, material) * material.spec);
       vec3 amb = indirectLight * material.amb;
-      // float sp = (Specular(intersection, material));
-      // vec3 spec = vec3(sp * material.spec);
-      intersection.light.brightness = amb + diff;
-      // intersection.light.brightness = amb + diff + spec;
+      float sp = (Specular(i, material));
+      vec3 spec = vec3(sp * material.spec);
+      i.light.brightness = amb + diff + spec;
    }
 
-   return intersection.light.brightness*triangles[intersection.triangleIndex].color;
+   return i.light.brightness*triangles[i.triangleIndex].color;
 }
 
 vec3 TheBigReflectionDaddy(Intersection& i, Material material, vector<Triangle>& triangles){
    vec3 colour;
    for(uint j = 0; j < NUMBEROFLIGHTS; j++ ){
 
-    // i.normal = triangles[i.triangleIndex].normal; //Surface normal
-     // float r = glm::distance(lightPos, i.position);   //Distance from light source to Intersection
-     // vec4 reflection = (lightPos - i.position) / r;  //Unit vector of reflection
-     // i.lightRay = reflection;
-     //
-     //
-     // i.cameraRay = i.lightRay;
 
-
-
-      vec4 r2 = reflect(triangles[i.triangleIndex].normal, i.cameraRay);
+      vec4 r = reflect(i.normal, i.cameraRay);
       // SetReflection(i);
 
       Intersection newIntersection;
-      bool isIntersection = ClosestIntersectionMirror(i.position, r2, triangles, newIntersection, i.triangleIndex);
+      bool isIntersection = ClosestIntersectionMirror(i.position, r, triangles, newIntersection, i.triangleIndex);
 
       if(isIntersection){
          colour = calculateColour(triangles[newIntersection.triangleIndex], newIntersection, triangles);
