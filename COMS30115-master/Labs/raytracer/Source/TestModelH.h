@@ -34,8 +34,18 @@ struct Light
       glm::vec4 pos;
    };
 
-class Sphere
-{
+class Item {
+public:
+     glm::vec3 color;
+     Material material;
+
+     Item(glm::vec3 color, Material material): color(color), material(material){} // constructor
+     // virtual ~Object() {} // virtual destructor
+     virtual bool isIntersection(glm::vec4 orig, glm::vec4 dir, float &t, glm::vec4 &position) const = 0;
+     virtual glm::vec4 computeNormal(glm::vec4 position) const = 0;
+};
+
+class Sphere {
 public:
 	glm::vec4 c;
 	float r;
@@ -105,6 +115,25 @@ public:
 };
 
 
+// class Sphere2
+// {
+//    float radius;
+//    glm::vec4 center;
+//
+//    Sphere( glm::vec4 c, float r ) : center(c), radius(r) {}
+//
+//    bool intersection(glm::vec4 origin, glm::vec4 dir, float& t, glm::vec4& posi)
+//
+//    glm::vec4 computeNormal( glm::vec4 position) {
+//       glm::vec4 normal = glm::normalize(position - center);
+//       normal.w = 1.f;
+//       return normal;
+//    }
+//
+//
+// }
+
+
 // Used to describe a triangular surface:
 class Triangle
 {
@@ -118,11 +147,9 @@ public:
 
 	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color, Material material )
 		: v0(v0), v1(v1), v2(v2), color(color), material(material)
-	{std::vector<glm::vec4> points;
-
-
-		ComputeNormal();
-	}
+      {
+		   ComputeNormal();
+	   }
 
 	void ComputeNormal()
 	{
@@ -135,6 +162,70 @@ public:
 	  normal.w = 1.0;
 	}
 };
+
+// // Used to describe a triangular surface:
+// class Triangle2 : public Item {
+// public:
+// 	glm::vec4 v0;
+// 	glm::vec4 v1;
+// 	glm::vec4 v2;
+// 	glm::vec4 normal;
+// 	glm::vec3 color;
+// 	Material material;
+//
+// 	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color, Material material )
+// 		: v0(v0), v1(v1), v2(v2), color(color), material(material)
+//       {
+// 		   ComputeNormal();
+// 	   }
+//
+// 	void ComputeNormal()
+// 	{
+// 	  glm::vec3 e1 = glm::vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
+// 	  glm::vec3 e2 = glm::vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
+// 	  glm::vec3 normal3 = glm::normalize( glm::cross( e2, e1 ) );
+// 	  normal.x = normal3.x;
+// 	  normal.y = normal3.y;
+// 	  normal.z = normal3.z;
+// 	  normal.w = 1.0;
+// 	}
+//
+//    bool isIntersection(glm::vec4 s, glm::vec4 dir, float& x, glm::vec4& position){
+//       bool intersectionOccurred = false;
+//       vec3 e1 = vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
+//       vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
+//       vec3 b = vec3(s.x-v0.x,s.y-v0.y,s.z-v0.z);
+//       mat3 A( -vec3(dir), e1, e2 );
+//
+//       mat3 Ax( b , e1, e2 );
+//       float determinantA = glm::determinant(A);
+//       float determinantAx = glm::determinant(Ax);
+//       x = determinantAx / determinantA;
+//
+//       if(x < 0) continue;
+//
+//       mat3 Ay( -vec3(dir) , b, e2 );
+//       float determinantAy = glm::determinant(Ay);
+//       float y = determinantAy / determinantA;
+//
+//       if(y >= 0){
+//           mat3 Az( -vec3(dir) , e1, b );
+//           float determinantAz = glm::determinant(Az);
+//           float z = determinantAz / determinantA;
+//           if ((z >= 0) && ( (y + z) < 1)){
+//             intersectionOccurred = true; //At least one intersection occurred
+//             float distance = x;
+//
+//         //Overwrite closestIntersection
+//           if(distance < closestIntersection.distance){
+//             position =  s + distance*dir;
+//             closestIntersection.triangleIndex = i;
+//           }
+//         }
+//       }
+//     }
+//    }
+// };
 
 // Loads the Cornell Box. It is scaled to fill the volume:
 // -1 <= x <= +1
@@ -233,10 +324,10 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	A = vec4(423,0,247,1);
 	B = vec4(265,0,296,1);
 	C = vec4(472,0,406,1);
+   F = vec4(265,330,296,1);
 	D = vec4(314,0,456,1);
 
 	E = vec4(423,330,247,1);
-	F = vec4(265,330,296,1);
 	G = vec4(472,330,406,1);
 	H = vec4(314,330,456,1);
 
@@ -261,9 +352,9 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	triangles.push_back( Triangle(G,H,F,blue, Rough) );
 
 
+
 	// ----------------------------------------------
 	// Scale to the volume [-1,1]^3
-
 	for( size_t i=0; i<triangles.size(); ++i )
 	{
 		triangles[i].v0 *= 2/L;
