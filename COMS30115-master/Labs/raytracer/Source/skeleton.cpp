@@ -51,17 +51,14 @@ struct Intersection
 bool Update();
 void Draw(screen* screen);
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection& closestIntersection, int index );
-// bool ClosestIntersectionMirror(vec4 start, vec4 dir, const vector<Triangle>& triangles, Intersection& closestIntersection, uint ignore );
 float calcDistance(vec3 start, vec3 intersection);
 vec3 DirectLight( Intersection& );
 bool xChecker(vec3 x);
 void rotateCamera(vec4 rotation, vec4 translation);
 void moveLight(vec4 rotation,  vec4 translation);
-// float Specular(Intersection& i, Material material);
-// void SetReflection(Intersection& i);
-// vec3 TheBigDaddy(Intersection& i, Material material, vector<Triangle>& triangles);
-// vec3 TheBigReflectionDaddy(Intersection& i, Material material, vector<Triangle>& triangles);
-vec3 calculateColour(Intersection& i, vec4 incidentRay);
+vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth);
+vec3 mirror(Intersection& i, vec4 dir, int depth);
+
 
 // -----------------------------------------------------------------------------
 
@@ -102,7 +99,7 @@ void Draw(screen* screen)
       bool isIntersection = ClosestIntersection(cameraPos, rayDirection, intersection, -1);
 
       if(isIntersection){
-         colour = calculateColour(intersection, rayDirection);
+         colour = calculateColour(intersection, rayDirection, 10);
       }
       // else printf("Out\n");
       PutPixelSDL(screen, i, j, colour);
@@ -290,17 +287,33 @@ vec4 reflect(vec4 normal, vec4 dir){
   return dir - 2 * glm::dot(dir, normal) * normal;
 }
 
-vec3 mirror(Intersection& i, vec4 dir){
+vec3 mirror(Intersection& i, vec4 dir, int depth){
+   depth--;
+
    vec4 reflectedRay = reflect( triangles[i.index]->computeNormal(i.position), dir);
    Intersection newIntersection;
    bool isIntersection = ClosestIntersection(i.position, reflectedRay, newIntersection, i.index);
    if(isIntersection){
-      return calculateColour(newIntersection, reflectedRay);
+
+         // return 0.95f * calculateColour(newIntersection, reflectedRay2, depth);
+//reflectedRay2, depth) : vec3
+       reflectedRay = reflect( triangles[newIntersection.index]->computeNormal(newIntersection.position) , reflectedRay);
+
+      return (depth > 7) ? 0.95f * calculateColour(newIntersection, reflectedRay, depth) : vec3(0.3);
    }
-   else return vec3(0);
+   else {
+      return vec3(0);
+   }
 }
 
-vec3 calculateColour(Intersection& i, vec4 incidentRay){
+vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
+
+   // printf("%d\n", depth);
+
+   if(depth < -20) {
+      printf("Mirror\n");
+      return vec3(1);
+   }
 
    vec3 colour = vec3(0);
 
@@ -310,13 +323,11 @@ vec3 calculateColour(Intersection& i, vec4 incidentRay){
          break;
 
       case RoughType:
-         // printf("Light: %.2f %.2f %.2f\n", DirectLight(i).x, DirectLight(i).y, DirectLight(i).z);
          colour = triangles[i.index]->colour * (DirectLight(i) + indirectLight);
          break;
 
       case MirrorType:
-         colour = mirror(i, incidentRay);
-         // colour = TheBigReflectionDaddy(intersection, Mirror, triangles);
+         colour = mirror(i, incidentRay, depth);
          break;
    }
 

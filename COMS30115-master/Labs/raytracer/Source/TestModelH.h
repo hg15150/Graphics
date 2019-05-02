@@ -216,7 +216,7 @@ public:
 // -1 <= x <= +1
 // -1 <= y <= +1
 // -1 <= z <= +1
-void LoadTestModel( std::vector<Item*>& triangles )
+void LoadTestModel( vector<Item*>& triangles )
 {
 	using glm::vec3;
 	using glm::vec4;
@@ -257,22 +257,22 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	triangles.push_back( new Triangle( C, D, B, green, Rough ) );
 
 	// Left wall
-	triangles.push_back( new Triangle( A, E, C, purple, Mirror ) );
-	triangles.push_back( new Triangle( C, E, G, purple, Mirror ) );
-	// triangles.push_back( new Triangle( A, E, C, purple, Rough ) );
-	// triangles.push_back( new Triangle( C, E, G, purple, Rough ) );
+	// triangles.push_back( new Triangle( A, E, C, purple, Mirror ) );
+	// triangles.push_back( new Triangle( C, E, G, purple, Mirror ) );
+	triangles.push_back( new Triangle( A, E, C, purple, Rough ) );
+	triangles.push_back( new Triangle( C, E, G, purple, Rough ) );
 
 	// Right wall
-	triangles.push_back( new Triangle( F, B, D, yellow, Rough ) );
-	triangles.push_back( new Triangle( H, F, D, yellow, Rough ) );
+	triangles.push_back( new Triangle( F, B, D, yellow, Mirror ) );
+	triangles.push_back( new Triangle( H, F, D, yellow, Mirror ) );
 
 	// Ceiling
 	triangles.push_back( new Triangle( E, F, G, cyan, Rough ) );
 	triangles.push_back( new Triangle( F, H, G, cyan, Rough ) );
 
 	// Back wall
-	triangles.push_back( new Triangle( G, D, C, white, Rough ) );
-	triangles.push_back( new Triangle( G, H, D, white, Rough ) );
+	triangles.push_back( new Triangle( G, D, C, white, Mirror ) );
+	triangles.push_back( new Triangle( G, H, D, white, Mirror ) );
 
 	// ---------------------------------------------------------------------------
 	// Short block
@@ -288,24 +288,24 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	H = vec4( 82,165,225,1);
 
 	// Front
-	triangles.push_back( new Triangle(E,B,A,red, Rough) );
-	triangles.push_back( new Triangle(E,F,B,red, Rough) );
-
-	// Front
-	triangles.push_back( new Triangle(F,D,B,red, Rough) );
-	triangles.push_back( new Triangle(F,H,D,red, Rough) );
-
-	// BACK
-	triangles.push_back( new Triangle(H,C,D,red, Rough) );
-	triangles.push_back( new Triangle(H,G,C,red, Rough) );
-
-	// LEFT
-	triangles.push_back( new Triangle(G,E,C,red, Rough) );
-	triangles.push_back( new Triangle(E,A,C,red, Rough) );
-
-	// TOP
-	triangles.push_back( new Triangle(G,F,E,red, Rough) );
-	triangles.push_back( new Triangle(G,H,F,red, Rough) );
+	// triangles.push_back( new Triangle(E,B,A,red, Rough) );
+	// triangles.push_back( new Triangle(E,F,B,red, Rough) );
+   //
+	// // Front
+	// triangles.push_back( new Triangle(F,D,B,red, Rough) );
+	// triangles.push_back( new Triangle(F,H,D,red, Rough) );
+   //
+	// // BACK
+	// triangles.push_back( new Triangle(H,C,D,red, Rough) );
+	// triangles.push_back( new Triangle(H,G,C,red, Rough) );
+   //
+	// // LEFT
+	// triangles.push_back( new Triangle(G,E,C,red, Rough) );
+	// triangles.push_back( new Triangle(E,A,C,red, Rough) );
+   //
+	// // TOP
+	// triangles.push_back( new Triangle(G,F,E,red, Rough) );
+	// triangles.push_back( new Triangle(G,H,F,red, Rough) );
 
    // // Front
 	// triangles.push_back( new Triangle(E,B,A,red, Glass) );
