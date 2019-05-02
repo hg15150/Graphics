@@ -255,7 +255,7 @@ bool xChecker(vec3 x){
 }
 
 bool ClosestIntersection(vec4 s, vec4 dir, Intersection& closestIntersection , int index){
-   
+
    bool intersectionOccurred = false;
    closestIntersection.distance = std::numeric_limits<float>::max();
    float t = closestIntersection.distance;
@@ -297,6 +297,7 @@ vec3 mirror(Intersection& i, vec4 dir){
    if(isIntersection){
       return calculateColour(newIntersection, reflectedRay);
    }
+   else return vec3(0);
 }
 
 vec3 calculateColour(Intersection& i, vec4 incidentRay){

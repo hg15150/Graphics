@@ -54,77 +54,6 @@ public:
 };
 
 
-
-// class Sphere {
-// public:
-// 	glm::vec4 c;
-// 	float r;
-// 	std::vector<glm::vec4> points;
-// 	std::vector<glm::vec3> indices;
-//
-// 	uint sectorCount = 12;
-// 	uint stackCount = 12;
-//
-// 	float sectorStep = 2*PI / sectorCount;
-// 	float stackStep = PI / stackCount;
-// 	float stackAngle, sectorAngle;
-// 	float x, y, z, xz;
-//
-// 	Sphere( glm::vec4 c, float r ) : c(c), r(r)
-// 	{
-// 		ComputePoints();
-// 		ComputeIndices();
-// 	}
-//
-// 	void ComputePoints()
-// 	{
-// 		points.push_back(c + glm::vec4(0, -r, 0, 0));
-// 		for (uint i = 1; i < stackCount; i++) {
-// 			stackAngle = PI - i*stackStep;
-// 			xz = r * sinf(stackAngle);
-// 			y = r * cosf(stackAngle);
-// 			// printf("%.2f %.2f\n",xz, y );
-//
-//
-// 			for (uint j = 0; j < sectorCount; j++) {
-// 				sectorAngle = 2*PI - j * sectorStep;
-//
-// 				//vertex
-// 				x = xz * cosf(sectorAngle);
-// 				z = xz * sinf(sectorAngle);
-//
-// 				points.push_back(c + glm::vec4(x, y, z, 0));
-// 			}
-// 		}
-// 		points.push_back(c + glm::vec4(0, r, 0, 0));
-// 	}
-//
-// 	void ComputeIndices(){
-// 		for (uint j = 0; j < sectorCount-1; j++) {
-// 			indices.push_back(glm::vec3(0,j+1,j+2));
-// 		}
-// 		indices.push_back(glm::vec3(0,sectorCount,1));
-//
-// 		for (uint i = 0; i < stackCount-2; i++) {
-// 			int sectorFirst = i * sectorCount + 1;
-// 			int sectorSecond = (i+1) * sectorCount + 1;
-//
-// 			for (uint j = 0; j < sectorCount; j++) {
-// 				indices.push_back(glm::vec3(sectorFirst+j,sectorSecond+j,sectorFirst+((j+1)%sectorCount)));
-// 				indices.push_back(glm::vec3(sectorFirst+((j+1)%sectorCount),sectorSecond+j,sectorSecond+((j+1)%sectorCount)));
-// 			}
-// 		}
-//
-// 		int finalValue = (stackCount-1)*sectorCount+1;
-// 		for (uint j = 1; j < sectorCount; j++) {
-// 			indices.push_back(glm::vec3( finalValue , finalValue - (j), finalValue - (j+1) ));
-// 		}
-// 		indices.push_back(glm::vec3( finalValue, finalValue - (sectorCount), finalValue - (1) ));
-// }
-//
-// };
-
-
 bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, float &x1)
 {
     float discr = b * b - 4 * a * c;
@@ -145,12 +74,12 @@ bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, f
 
 
 
-class Sphere2 : public Item{
+class Sphere : public Item{
 public:
    float radius;
-   glm::vec4 center;
+   vec4 center;
 
-   Sphere2( glm::vec4 c, float r, vec3 colours, Material material ) : Item(colour, material), center(c), radius(r) {}
+   Sphere( vec3 colours, Material material, vec4 c, float r ) : Item(colour, material), center(c), radius(r) {}
 
    bool intersection(glm::vec4 start, glm::vec4 dir, float& t, glm::vec4& position) override {
       float t0, t1;
@@ -320,7 +249,7 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	vec4 H(0,L,L,1);
 
    //Sphere
-   triangles.push_back( new Sphere2(glm::vec4(0,0,0,1), 0.35, white, Mirror));
+   // triangles.push_back( new Sphere(glm::vec4(0,0,0,1), 0.35, white, Mirror));
 
 
 	// Floor:
