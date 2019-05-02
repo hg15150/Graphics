@@ -5,6 +5,7 @@
 #include "TestModelH.h"
 #include <stdint.h>
 #include <omp.h>
+#include <math.h>
 
 using namespace std;
 using glm::vec3;
@@ -14,28 +15,28 @@ using glm::mat4;
 
 SDL_Event event;
 
-// #define SCREEN_WIDTH 32
-// #define SCREEN_HEIGHT 25
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 512
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 250
+// #define SCREEN_WIDTH 640
+// #define SCREEN_HEIGHT 512
 // #define SCREEN_WIDTH 1280
 // #define SCREEN_HEIGHT 1024
 
 #define NUMBEROFLIGHTS 1
 
-#define FULLSCREEN_MODE false
+#define FULLSCREEN_MODE true
 vec4 cameraPos(0,0,-3,1);
 int rotL=0;
 int rotU=0;
 
 vec4 lightPos( 0, -0.5, -0.7, 1.0 );
-vec4 lightPosX;
-int sizeOfLight = 2;
-float lightHeight = 0.2;
-vec3 lightColor = 25.f * vec3( 1, 1, 1 );
-vec3 indirectLight = 0.2f*vec3( 1, 1, 1 );
+// vec4 lightPosX;
+int sizeOfLight = 5;
+float lightHeight = 0.1;
+vec3 lightColor = 15.f * vec3( 1, 1, 1 );
+vec3 indirectLight = 0.8f*vec3( 1, 1, 1 );
 
-vec4 tmpNormal = vec4(-1);
+int tmp = 0;
 
 vector<Item*> triangles;
 
@@ -52,12 +53,16 @@ bool Update();
 void Draw(screen* screen);
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection& closestIntersection, int index );
 float calcDistance(vec3 start, vec3 intersection);
-vec3 DirectLight( Intersection& );
+vec3 DirectLight( Intersection& i, vec4 incidentRay);
 bool xChecker(vec3 x);
 void rotateCamera(vec4 rotation, vec4 translation);
 void moveLight(vec4 rotation,  vec4 translation);
 vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth);
 vec3 mirror(Intersection& i, vec4 dir, int depth);
+float Specular(Intersection i, vec4 incidentRay, vec4 reflectedRay, float r);
+vec4 refract(vec4 I, vec4 N);
+vec3 glass(Intersection i, vec4 dir, int depth);
+
 
 
 // -----------------------------------------------------------------------------
@@ -88,7 +93,7 @@ void Draw(screen* screen)
   int halfScreenWidth = SCREEN_WIDTH/2;
   int halfScreenHeight = SCREEN_HEIGHT/2;
 
-  #pragma omp parallel for
+  // #pragma omp parallel for
   for(int i=0; i<SCREEN_WIDTH; i++){
     for (int j = 0; j < SCREEN_HEIGHT; j++){
       //Calculate ray direction { d = x - W/2, y - H/2, f, 1}
@@ -200,17 +205,36 @@ bool Update()
   return true;
 }
 
-vec3 DirectLight( Intersection& i){
+vec3 DirectLight( Intersection& i, vec4 incidentRay ){
    vec4 normal = triangles[i.index]->computeNormal(i.position); //Surface normal
+   vec3 brightness = vec3(0);
+   float sectionSize = lightHeight/sizeOfLight;
+   float a = triangles[i.index]->material.spec;
+   float b = triangles[i.index]->material.diff;
 
-   float r = glm::distance(lightPos, i.position);   //Distance from light source to Intersection
-   vec4 reflection = (lightPos - i.position) / r;  //Unit vector of reflection
 
-   Intersection newIntersection;
-   bool isIntersection = ClosestIntersection(i.position, reflection, newIntersection, i.index);
 
-   if(r > newIntersection.distance && isIntersection) return vec3(0,0,0);
-   else return (1.f/(float)(sizeOfLight * sizeOfLight)) * (lightColor * max(dot(reflection, normal), 0.f)) / (float) (4*PI*pow(r,2));
+   for (int x = 0; x < sizeOfLight; x++)
+     {
+      for (int y = 0; y < sizeOfLight; y++)
+        {
+         vec4 lightPosX = vec4( lightPos.x - (0.5 * lightHeight) + x * sectionSize, lightPos.y - (0.5 * lightHeight) + y * sectionSize, lightPos.z, 1.0 );
+
+         float r = glm::distance(lightPosX, i.position);   //Distance from light source to Intersection
+         vec4 reflection = (lightPosX - i.position) / r;  //Unit vector of reflection
+
+         Intersection newIntersection;
+         bool isIntersection = ClosestIntersection(i.position, reflection, newIntersection, i.index);
+
+         vec4 optimalReflection = reflect(normal, reflection);
+
+
+         if(r > newIntersection.distance && isIntersection) brightness += vec3(0,0,0);
+         else brightness += a * vec3(Specular(i, incidentRay, optimalReflection, r)) + b * ((1.f/(float)(sizeOfLight * sizeOfLight)) * (lightColor * max(dot(reflection, normal), 0.f)) / (float) (4*PI*pow(r,2)));
+ }
+}
+
+ return brightness;
 }
 
 void rotateCamera(vec4 rotation, vec4 translation){
@@ -273,15 +297,17 @@ bool ClosestIntersection(vec4 s, vec4 dir, Intersection& closestIntersection , i
    return intersectionOccurred;
 }
 
-float Specular(Intersection& i, Material material){
-   // return (
-   //    (glm::pow(glm::max( glm::dot( i.reflectedRay , glm::normalize(i.cameraRay)), 0.f ), material.shi))
-   //    /
-   //    4 * PI * glm::pow(glm::distance(lightPos, i.position), 2)
-   // );
-   return -1.f;
-}
+float Specular(Intersection i, vec4 incidentRay, vec4 reflectedRay, float r){
+   if(triangles[i.index]->material.type == GlassType){
+      return (
+         (glm::pow(glm::max( glm::dot( reflectedRay, glm::normalize(incidentRay) ), 0.f ), 2))
+         /
+         (4 * PI * glm::pow(r, 2))
+      );
+   }
+   else return 0.f;
 
+}
 
 vec4 reflect(vec4 normal, vec4 dir){
   return dir - 2 * glm::dot(dir, normal) * normal;
@@ -290,15 +316,11 @@ vec4 reflect(vec4 normal, vec4 dir){
 vec3 mirror(Intersection& i, vec4 dir, int depth){
    depth--;
 
-   vec4 reflectedRay = reflect( triangles[i.index]->computeNormal(i.position), dir);
+   vec4 reflectedRay = glm::normalize(reflect( triangles[i.index]->computeNormal(i.position), dir));
    Intersection newIntersection;
    bool isIntersection = ClosestIntersection(i.position, reflectedRay, newIntersection, i.index);
    if(isIntersection){
-
-         // return 0.95f * calculateColour(newIntersection, reflectedRay2, depth);
-//reflectedRay2, depth) : vec3
-       reflectedRay = reflect( triangles[newIntersection.index]->computeNormal(newIntersection.position) , reflectedRay);
-
+       reflectedRay = glm::normalize(reflect( triangles[newIntersection.index]->computeNormal(newIntersection.position) , reflectedRay));
       return (depth > 7) ? 0.95f * calculateColour(newIntersection, reflectedRay, depth) : vec3(0.3);
    }
    else {
@@ -306,28 +328,104 @@ vec3 mirror(Intersection& i, vec4 dir, int depth){
    }
 }
 
-vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
+vec4 refract2 (vec4 normal, vec4 dir, float& n, float& k){
+  float cosi = glm::clamp(-1.f,1.f,glm::dot(dir, normal));
+  float n1 = 1.5f;
+  float n2 = 1.f;
+  if (cosi < 0) {
+     cosi = -cosi;
+     printf("one\n");
+  }
+  else {
+     printf("two\n");
+    std::swap(n1, n2);
+    normal = -normal;
+  }
+  n = n1 / n2;
+  k = 1 - n * n * (1 - cosi * cosi);
+  return (k < 0) ? vec4(0) : n * dir + (n * cosi - sqrtf(k)) * normal;
+}
 
-   // printf("%d\n", depth);
+vec4 refract (vec4 dir, vec4 normal){
+  float cosi = glm::clamp(-1.f,1.f,glm::dot(dir, normal));
+  float n1 = 1.5f, n2 = 1.f;
+  if (cosi < 0) cosi = -cosi;
+  else {
+    std::swap(n1, n2);
+    normal = -normal;
+  }
+  float n = n1 / n2;
+  float k = 1 - n * n * (1 - cosi * cosi);
+  return (k < 0) ? vec4() : n * dir + (n * cosi - sqrtf(k)) * normal;
+}
 
-   if(depth < -20) {
-      printf("Mirror\n");
-      return vec3(1);
+float fresnel(vec4 I, vec4 N)
+{
+   float cosi = glm::clamp(-1.f, 1.f, glm::dot(I, N));
+   float n1 = 1.5f;
+   float n2 = 1.f;
+   float kr;
+
+   if (cosi > 0) std::swap(n1, n2);
+
+   // Compute sini using Snell's law
+   float sint = n1 / n2 * sqrtf(std::max(0.f, 1 - cosi * cosi));
+
+   // Total internal reflection
+   if (sint >= 1) kr = 1.f;
+   else {
+      float cost = sqrtf(std::max(0.f, 1 - sint * sint));
+      cosi = fabsf(cosi);
+      float Rs = ((n2 * cosi) - (n1 * cost)) / ((n2 * cosi) + (n1 * cost));
+      float Rp = ((n1 * cosi) - (n2 * cost)) / ((n1 * cosi) + (n2 * cost));
+      kr = (Rs * Rs + Rp * Rp) / 2;
    }
+   return kr;
+}
+
+vec3 glass(Intersection i, vec4 dir, int depth){
+
+   dir = glm::normalize(dir);
+   vec4 normal = triangles[i.index]->computeNormal(i.position);
+   vec3 refractedColour = vec3(0);
+   vec3 reflectedColour = vec3(0);
+
+   //Fresnel
+   float kr = fresnel(dir, normal);
+
+   if(kr < 1){
+      //Refraction
+      vec4 refractedRay = glm::normalize(refract(dir, normal));
+      Intersection newIntersection;
+      bool isIntersection = ClosestIntersection(i.position, refractedRay, newIntersection, i.index);
+      refractedColour = isIntersection ? calculateColour(newIntersection, refractedRay, depth) : vec3(0);
+   }
+
+   reflectedColour = mirror(i, dir, depth);
+
+   return reflectedColour * kr  +  refractedColour * (1 - kr);
+}
+
+vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
 
    vec3 colour = vec3(0);
 
    switch (triangles[i.index]->material.type) {
-      case GlassType:
-         // colour = TheBigDaddy(intersection, Glass, triangles);
+      case GlossType:
+         colour = 0.95f * triangles[i.index]->colour * (DirectLight(i,incidentRay) + indirectLight) + 0.03f * mirror(i, incidentRay, depth);
          break;
 
       case RoughType:
-         colour = triangles[i.index]->colour * (DirectLight(i) + indirectLight);
+         colour = 0.9f * triangles[i.index]->colour * (DirectLight(i, incidentRay) + indirectLight);
          break;
+
 
       case MirrorType:
          colour = mirror(i, incidentRay, depth);
+         break;
+
+      case GlassType:
+         colour = 0.9f * glass(i, incidentRay, depth);
          break;
    }
 

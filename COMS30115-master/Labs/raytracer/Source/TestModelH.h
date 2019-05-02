@@ -15,7 +15,7 @@ using glm::vec4;
 using glm::mat4;
 
 
-enum MaterialType { GlassType , MirrorType, RoughType };
+enum MaterialType { GlossType , MirrorType, RoughType, GlassType };
 
 struct Material
    {
@@ -27,7 +27,8 @@ struct Material
       float emit;
    };
 
-Material Glass = { .type = GlassType,.amb = 0.5, .diff = 0.5, .spec = 50 , .shi = 15 };
+Material Gloss = { .type = GlossType,.amb = 0.5, .diff = 0, .spec = 0.2 , .shi = 15 };
+Material Glass = { .type = GlassType,.amb = 0.5, .diff = 0.5, .spec = 0.2 , .shi = 15 };
 Material Rough = {  .type = RoughType,.amb = 1, .diff = 0.8, .spec = 0.0, .shi = 2};
 Material Mirror = { .type = MirrorType,.amb = 0.9, .diff = 0.9, .spec = 10, .shi = 10};
 
@@ -79,7 +80,7 @@ public:
    float radius;
    vec4 center;
 
-   Sphere( vec3 colours, Material material, vec4 c, float r ) : Item(colour, material), center(c), radius(r) {}
+   Sphere( vec3 colour, Material material, vec4 c, float r ) : Item(colour, material), center(c), radius(r) {}
 
    bool intersection(glm::vec4 start, glm::vec4 dir, float& t, glm::vec4& position) override {
       float t0, t1;
@@ -223,6 +224,7 @@ void LoadTestModel( vector<Item*>& triangles )
 
 	// Defines colours:
 	vec3 red(    0.75f, 0.15f, 0.15f );
+	vec3 orange (    0.9f, 0.50f, 0.f );
 	vec3 yellow( 0.75f, 0.75f, 0.15f );
 	vec3 green(  0.15f, 0.75f, 0.15f );
 	vec3 cyan(   0.15f, 0.75f, 0.75f );
@@ -249,7 +251,7 @@ void LoadTestModel( vector<Item*>& triangles )
 	vec4 H(0,L,L,1);
 
    //Sphere
-   // triangles.push_back( new Sphere(glm::vec4(0,0,0,1), 0.35, white, Mirror));
+   // triangles.push_back( new Sphere( orange, Gloss, vec4(0,0,0,1), 0.35 ) );
 
 
 	// Floor:
@@ -271,8 +273,8 @@ void LoadTestModel( vector<Item*>& triangles )
 	triangles.push_back( new Triangle( F, H, G, cyan, Rough ) );
 
 	// Back wall
-	triangles.push_back( new Triangle( G, D, C, white, Mirror ) );
-	triangles.push_back( new Triangle( G, H, D, white, Mirror ) );
+	triangles.push_back( new Triangle( G, D, C, white, Rough ) );
+	triangles.push_back( new Triangle( G, H, D, white, Rough ) );
 
 	// ---------------------------------------------------------------------------
 	// Short block
@@ -288,24 +290,24 @@ void LoadTestModel( vector<Item*>& triangles )
 	H = vec4( 82,165,225,1);
 
 	// Front
-	// triangles.push_back( new Triangle(E,B,A,red, Rough) );
-	// triangles.push_back( new Triangle(E,F,B,red, Rough) );
+	triangles.push_back( new Triangle(E,B,A,red, Rough) );
+	triangles.push_back( new Triangle(E,F,B,red, Rough) );
    //
-	// // Front
-	// triangles.push_back( new Triangle(F,D,B,red, Rough) );
-	// triangles.push_back( new Triangle(F,H,D,red, Rough) );
+	// Front
+	triangles.push_back( new Triangle(F,D,B,red, Rough) );
+	triangles.push_back( new Triangle(F,H,D,red, Rough) );
    //
-	// // BACK
-	// triangles.push_back( new Triangle(H,C,D,red, Rough) );
-	// triangles.push_back( new Triangle(H,G,C,red, Rough) );
+	// BACK
+	triangles.push_back( new Triangle(H,C,D,red, Rough) );
+	triangles.push_back( new Triangle(H,G,C,red, Rough) );
    //
 	// // LEFT
-	// triangles.push_back( new Triangle(G,E,C,red, Rough) );
-	// triangles.push_back( new Triangle(E,A,C,red, Rough) );
-   //
-	// // TOP
-	// triangles.push_back( new Triangle(G,F,E,red, Rough) );
-	// triangles.push_back( new Triangle(G,H,F,red, Rough) );
+	triangles.push_back( new Triangle(G,E,C,red, Rough) );
+	triangles.push_back( new Triangle(E,A,C,red, Rough) );
+
+	// TOP
+	triangles.push_back( new Triangle(G,F,E,red, Rough) );
+	triangles.push_back( new Triangle(G,H,F,red, Rough) );
 
    // // Front
 	// triangles.push_back( new Triangle(E,B,A,red, Glass) );
@@ -341,24 +343,24 @@ void LoadTestModel( vector<Item*>& triangles )
 	H = vec4(314,330,456,1);
 
 	// Front
-	triangles.push_back( new Triangle(E,B,A,blue, Rough) );
-	triangles.push_back( new Triangle(E,F,B,blue, Rough) );
+	triangles.push_back( new Triangle(E,B,A,blue, Glass) );
+	triangles.push_back( new Triangle(E,F,B,blue, Glass) );
 
-	// Front
-	triangles.push_back( new Triangle(F,D,B,blue, Rough) );
-	triangles.push_back( new Triangle(F,H,D,blue, Rough) );
-
-	// BACK
-	triangles.push_back( new Triangle(H,C,D,blue, Rough) );
-	triangles.push_back( new Triangle(H,G,C,blue, Rough) );
-
-	// LEFT
-	triangles.push_back( new Triangle(G,E,C,blue, Rough) );
-	triangles.push_back( new Triangle(E,A,C,blue, Rough) );
-
-	// TOP
-	triangles.push_back( new Triangle(G,F,E,blue, Rough) );
-	triangles.push_back( new Triangle(G,H,F,blue, Rough) );
+	// Right
+	triangles.push_back( new Triangle(F,D,B,blue, Glass) );
+	triangles.push_back( new Triangle(F,H,D,blue, Glass) );
+   //
+	// // BACK
+	triangles.push_back( new Triangle(H,C,D,blue, Glass) );
+	triangles.push_back( new Triangle(H,G,C,blue, Glass) );
+   //
+	// // LEFT
+	triangles.push_back( new Triangle(G,E,C,blue, Glass) );
+	triangles.push_back( new Triangle(E,A,C,blue, Glass) );
+   //
+	// // TOP
+	triangles.push_back( new Triangle(G,F,E,blue, Glass) );
+	triangles.push_back( new Triangle(G,H,F,blue, Glass) );
 
 
 
