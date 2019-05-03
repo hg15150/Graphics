@@ -16,12 +16,12 @@ using glm::normalize;
 
 SDL_Event event;
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 250
+// #define SCREEN_WIDTH 320
+// #define SCREEN_HEIGHT 250
 // #define SCREEN_WIDTH 640
 // #define SCREEN_HEIGHT 512
-// #define SCREEN_WIDTH 1280
-// #define SCREEN_HEIGHT 1024
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 1024
 
 #define NUMBEROFLIGHTS 1
 
@@ -30,12 +30,12 @@ vec4 cameraPos(0,0,-3,1);
 int rotL=0;
 int rotU=0;
 
-vec4 lightPos( 0, -0.5, -0.7, 1.0 );
+vec4 lightPos( 0, -0.5, -0.4, 1.0 );
 // vec4 lightPosX;
-int sizeOfLight = 5;
-float lightHeight = 0.1;
+int sizeOfLight = 15;
+float lightHeight = 0.3;
 vec3 lightColor = 15.f * vec3( 1, 1, 1 );
-vec3 indirectLight = 0.8f*vec3( 1, 1, 1 );
+vec3 indirectLight = 0.3f*vec3( 1, 1, 1 );
 
 float tmp0 = 0.f;
 float tmp1 = 1.f;
@@ -81,6 +81,11 @@ int main( int argc, char* argv[] )
   vec3 white(  0.75f, 0.75f, 0.75f );
   // sphere = new Sphere( white, Glass, vec4( 0, 0, 0, 1 ), 0.35, 3 );
   // triangles.push_back(sphere);
+  rotateCamera(vec4 (0.f,0.0785398f,0.f,1.f), vec4 (0.f,0.f,0.f,1.f));
+  rotateCamera(vec4 (0.f,0.0785398f,0.f,1.f), vec4 (0.f,0.f,0.f,1.f));
+  rotateCamera(vec4 (0.f,0.0785398f,0.f,1.f), vec4 (0.f,0.f,0.f,1.f));
+  rotateCamera(vec4 (0.f,0.0785398f,0.f,1.f), vec4 (0.f,0.f,0.f,1.f));
+
 
     while ( Update()){
       Draw(screen);
@@ -416,7 +421,7 @@ vec3 glass(Intersection i, vec4 dir, int depth) {
    // //Fresnel
    float kr = fresnel( normal, dir_norm );
 
-   printf("%.2f\n", kr);
+   // printf("%.2f\n", kr);
 
    //Refraction
    if(kr < 1){
@@ -424,6 +429,7 @@ vec3 glass(Intersection i, vec4 dir, int depth) {
       Intersection newIntersection;
       bool isIntersection = ClosestIntersection(i.position, refractedRay, newIntersection, i.index);
       refractedColour = isIntersection ? calculateColour(newIntersection, refractedRay, depth) : vec3(0);
+      // i = newIntersection;
    }
 
    vec4 reflection = reflect(normal, dir);
@@ -520,7 +526,7 @@ bool SphereIntersection(Intersection i, Intersection& closestIntersection, int i
    bool isIntersection = ClosestIntersection(i.position, dir, newIntersection, i.index);
 
    if(isIntersection && newIntersection.distance < distanceToSphere) {
-      printf("false\n");
+      // printf("false\n");
       return false;
    }
    //Therefore closest intersection is the sphere.
@@ -585,7 +591,7 @@ vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
          break;
 
       case GlossType:
-         colour = 0.95f * triangles[i.index]->colour * (DirectLight(i,incidentRay) + indirectLight) + 0.03f * mirror(i, incidentRay, depth);
+         colour = 1.5f * triangles[i.index]->colour * (DirectLight(i,incidentRay) + indirectLight) + 0.05f * mirror(i, incidentRay, depth);
          break;
 
       case RoughType:
