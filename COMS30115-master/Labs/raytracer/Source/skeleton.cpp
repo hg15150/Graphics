@@ -340,7 +340,7 @@ vec3 mirror(Intersection& i, vec4 dir, int depth){
    depth--;
 
    vec4 normal = triangles[i.index]->computeNormal(i.position);
-   vec4 reflectedRay = normalize(reflect(normal , dir));
+   vec4 reflectedRay = reflect(normal , dir);
 
    // printf("n: %.2f %.2f %.2f \n", normal.x, normal.y, normal.z );
    // printf("d: %.2f %.2f %.2f \n", dir.x, dir.y, dir.z );
@@ -350,7 +350,7 @@ vec3 mirror(Intersection& i, vec4 dir, int depth){
    bool isIntersection = ClosestIntersection(i.position, reflectedRay, newIntersection, i.index);
    if(isIntersection){
        vec4 normal = triangles[newIntersection.index]->computeNormal(newIntersection.position);
-       reflectedRay = glm::reflect( normal , reflectedRay);
+      reflectedRay = glm::reflect( normal , reflectedRay);
        // printf("r: %.2f %.2f %.2f \n", reflectedRay.x, reflectedRay.y, reflectedRay.z );
 
 
@@ -363,7 +363,7 @@ vec3 mirror(Intersection& i, vec4 dir, int depth){
 
 vec4 refract (vec4 dir, vec4 normal) {
   float cosi = glm::clamp(-1.f,1.f,glm::dot(dir, normal));
-  float n1 = 1.5f, n2 = 1.f;
+  float n1 = 1.517f, n2 = 1.0003f;
   if (cosi < 0) cosi = -cosi;
   else {
     std::swap(n1, n2);
@@ -376,7 +376,7 @@ vec4 refract (vec4 dir, vec4 normal) {
 
 float fresnel(vec4 I, vec4 N) {
    float cosi = glm::clamp(-1.f, 1.f, glm::dot(I, N));
-   float n1 = 1.9f;
+   float n1 = 1.517f;
    float n2 = 1.f;
    float kr;
 
@@ -418,10 +418,10 @@ vec3 glass(Intersection i, vec4 dir, int depth) {
 
    Intersection intersection;
    if(ClosestIntersection(i.position, reflection, intersection, i.index)){
-     reflectedColour = calculateColour(intersection, reflection, depth + 1);
+     reflectedColour = calculateColour(intersection, reflection, depth - 1);
    }
 
-   return 0.8f * (reflectedColour * kr  +  refractedColour * (1 - kr));
+   return 0.95f * (reflectedColour * kr  +  refractedColour * (1 - kr));
 }
 
 vec3 filterFlavour(Intersection& i, float tmp, vec4 normal){
@@ -585,7 +585,7 @@ vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
          break;
 
       case GlassType:
-         colour = 0.9f * glass(i, incidentRay, depth);
+         colour = 0.96f * glass(i, incidentRay, depth);
          break;
    }
 

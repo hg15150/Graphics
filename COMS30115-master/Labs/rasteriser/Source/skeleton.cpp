@@ -4,6 +4,7 @@
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 #include <stdint.h>
+#include <omp.h>
 
 using namespace std;
 using glm::vec3;
@@ -77,6 +78,8 @@ void clipPolygon(vector<Pixel>& trianglePixels);
 void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices, int x);
 bool isOnScreen(Pixel& pixel, vector<vec2> edgeVertices);
 void Intermediate(Pixel& p1, Pixel& p2, Pixel& intermediate, vector<vec2> edgeVertices, int side);
+void moveLight(vec4 rotation,  vec4 translation);
+
 
 int main( int argc, char* argv[] )
 {
@@ -125,6 +128,7 @@ void Draw(screen* screen, vector<Triangle> triangles){
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
 
+#pragma omp parallel
   for (int i = 0; i < SCREEN_WIDTH; i++) {
     for (int j = 0; j < SCREEN_HEIGHT; j++) {
       depthBuffer[j][i] = 0;
@@ -425,7 +429,7 @@ void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices, int side
    vector<Pixel> clippedPixels;
    Pixel p1 ;
    Pixel p2 = trianglePixels[size - 1];
-   printf("-------------\n");
+   // printf("-------------\n");
 
    for (int i = 0; i < size; i++) {
       p1 = trianglePixels[i];
@@ -434,14 +438,14 @@ void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices, int side
 
       if( (isOnScreen(p1, edgeVertices)) && (isOnScreen(p2, edgeVertices))) {
          clippedPixels.push_back(p2);
-         printf("TOP\n");
+         // printf("TOP\n");
 
       }
       else if( (isOnScreen(p1, edgeVertices)) && !(isOnScreen(p2, edgeVertices))) {
          Intermediate(p1, p2, intermediate, edgeVertices, side);
 
          clippedPixels.push_back(intermediate);
-         printf("MIDDLE\n");
+         // printf("MIDDLE\n");
 
       }
       else if( !(isOnScreen(p1, edgeVertices)) && (isOnScreen(p2, edgeVertices))) {
@@ -449,7 +453,7 @@ void clipEdge(vector<Pixel>& trianglePixels, vector<vec2> edgeVertices, int side
 
          clippedPixels.push_back(p2);
          clippedPixels.push_back(intermediate);
-         printf("BOTTOM\n");
+         // printf("BOTTOM\n");
       }
       p2 = p1;
    }
@@ -540,16 +544,19 @@ void Intermediate(Pixel& p1, Pixel& p2, Pixel& Intermediate, vector<vec2> edgeVe
       if(Intermediate.position.y >= SCREEN_HEIGHT) Intermediate.position.y = SCREEN_HEIGHT-1;
 
    }
-   printf("%d %d\n", Intermediate.position.x, Intermediate.position.y);
+   // printf("%d %d\n", Intermediate.position.x, Intermediate.position.y);
 }
 
 /*Place updates of parameters here*/
 bool Update(vector<Triangle>& triangles){
-  // static int t = SDL_GetTicks();
-  // /* Compute frame time */
-  // int t2 = SDL_GetTicks();
-  // float dt = float(t2-t);
-  // t = t2;
+  static int t = SDL_GetTicks();
+  /* Compute frame time */
+  int t2 = SDL_GetTicks();
+  float dt = float(t2-t);
+  t = t2;
+
+  std::cout << "Render time: " << dt << " ms." << std::endl;
+
 
   SDL_Event e;
   while(SDL_PollEvent(&e))
@@ -564,49 +571,68 @@ bool Update(vector<Triangle>& triangles){
 	    int key_code = e.key.keysym.sym;
 	    switch(key_code)
 	      {
-	      case SDLK_w:
-        rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,-0.1f,1.f));
-		/* Move camera forward */
-		break;
-	      case SDLK_s:
-  rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.1f,1.f));		/* Move camera backwards */
-		break;
-	      case SDLK_a:
-        rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.1f,0.f,0.f,1.f));		/* Move camera backwards */
-		/* Move camera left */
-		break;
-	      case SDLK_d:
-        rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (-0.1f,0.f,0.f,1.f));		/* Move camera backwards */
+          case SDLK_s:
+         moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.f,0.f,-0.1f,1.f));
+      /* Move camera forward */
+      break;
+         case SDLK_w:
+         moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.f,0.f,0.1f,1.f));		/* Move camera backwards */
+      break;
+         case SDLK_d:
+         moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.1f,0.f,0.f,1.f));		/* Move camera backwards */
+      /* Move camera left */
+      break;
+         case SDLK_a:
+         moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (-0.1f,0.f,0.f,1.f));		/* Move camera backwards */
+
+     break;
+     case SDLK_q:
+          moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.f,-0.1f,0.f,1.f));		/* Move camera backwards */
+
+     break;
+    case SDLK_e:
+    moveLight(vec4 (0.f,0.f,0.f,1.f), vec4 (0.f,0.1f,0.f,1.f));		/* Move camera backwards */
 
     break;
-        case SDLK_UP:
-        //lightPos.z--;
-         // rotateCamera(vec4 (0.0785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
-         rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.f,-0.1f,0.f,1.f));		/* Move camera backwards */
+      case SDLK_i:
+      rotateCamera(vec4 (0.f,0.f,0.f,1.f),triangles, vec4 (0.f,0.f,-0.1f,1.f));
+  /* Move camera forward */
+  break;
+      case SDLK_k:
+rotateCamera(vec4 (0.f,0.f,0.f,1.f),triangles, vec4 (0.f,0.f,0.1f,1.f));		/* Move camera backwards */
+  break;
+      case SDLK_j:
+      rotateCamera(vec4 (0.f,0.f,0.f,1.f),triangles, vec4 (0.1f,0.f,0.f,1.f));		/* Move camera backwards */
+  /* Move camera left */
+  break;
+      case SDLK_l:
+      rotateCamera(vec4 (0.f,0.f,0.f,1.f),triangles, vec4 (-0.1f,0.f,0.f,1.f));		/* Move camera backwards */
 
-           /* Move camera forward */
-    break;
-      case SDLK_DOWN:
-      //lightPos.z++;
-      // rotateCamera(vec4 (-0.0785398f,0.f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
-      rotateCamera(vec4 (0.f,0.f,0.f,1.f), triangles, vec4 (0.f,0.1f,0.f,1.f));		/* Move camera backwards */
+  break;
+      case SDLK_UP:
+      //lightPos.z--;
+       rotateCamera(vec4 (0.0785398f,0.f,0.f,1.f),triangles, vec4 (0.f,0.f,0.f,1.f));
+         /* Move camera forward */
+  break;
+    case SDLK_DOWN:
+    //lightPos.z++;
+    rotateCamera(vec4 (-0.0785398f,0.f,0.f,1.f),triangles, vec4 (0.f,0.f,0.f,1.f));
 
-
-         /* Move camera backwards */
-    break;
-      case SDLK_LEFT:
-      rotateCamera(vec4 (0.f,-0.0785398f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
-      //lightPos.x++;
+       /* Move camera backwards */
+  break;
+    case SDLK_LEFT:
+    rotateCamera(vec4 (0.f,-0.0785398f,0.f,1.f),triangles, vec4 (0.f,0.f,0.f,1.f));
+    //lightPos.x++;
 /* Move camera left */
-   break;
-      case SDLK_RIGHT:
-      //lightPos.x--;
-      rotateCamera(vec4 (0.f,0.0785398f,0.f,1.f), triangles, vec4 (0.f,0.f,0.f,1.f));
-    break;
-		/* Move camera right */
-	      case SDLK_ESCAPE:
-		/* Move camera quit */
-		return false;
+ break;
+    case SDLK_RIGHT:
+    //lightPos.x--;
+    rotateCamera(vec4 (0.f,0.0785398f,0.f,1.f),triangles, vec4 (0.f,0.f,0.f,1.f));
+  break;
+  /* Move camera right */
+      case SDLK_ESCAPE:
+  /* Move camera quit */
+  return false;
 	      }
 	  }
     }
@@ -629,4 +655,18 @@ void rotateCamera(vec4 rotation, vector<Triangle>& triangles, vec4 translation){
     triangles[i].v2 = rotationMatrix*triangles[i].v2;
   }
   lightPos = rotationMatrix*lightPos;
+}
+void moveLight(vec4 rotation ,vec4 translation){
+  float x = rotation.x;
+  float y = rotation.y;
+  float z = rotation.z;
+  vec4 col1(cos(y)*cos(z), cos(y)*sin(z),-sin(y),0);
+  vec4 col2(-cos(x)*sin(z)+sin(x)*sin(y)*cos(z),cos(x)*cos(z)+sin(x)*sin(y)*sin(z),sin(x)*cos(y),0);
+  vec4 col3(sin(x)*sin(z)+cos(x)*sin(y)*cos(z),-sin(x)*cos(z)+cos(x)*sin(y)*sin(z),cos(x)*cos(y),0);
+
+
+  mat4 rotationMatrix(col1,col2,col3,translation);
+
+  lightPos = rotationMatrix*lightPos;
+
 }

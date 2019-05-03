@@ -276,14 +276,14 @@ void LoadTestModel( vector<Item*>& triangles )
 	triangles.push_back( new Triangle( C, D, B, green, Rough ) );
 
 	// Left wall
-	// triangles.push_back( new Triangle( A, E, C, purple, Mirror ) );
-	// triangles.push_back( new Triangle( C, E, G, purple, Mirror ) );
-	triangles.push_back( new Triangle( A, E, C, purple, Rough ) );
-	triangles.push_back( new Triangle( C, E, G, purple, Rough ) );
+	triangles.push_back( new Triangle( A, E, C, purple, Mirror ) );
+	triangles.push_back( new Triangle( C, E, G, purple, Mirror ) );
+	// triangles.push_back( new Triangle( A, E, C, purple, Rough ) );
+	// triangles.push_back( new Triangle( C, E, G, purple, Rough ) );
 
 	// Right wall
-	triangles.push_back( new Triangle( F, B, D, yellow, Rough ) );
-	triangles.push_back( new Triangle( H, F, D, yellow, Rough ) );
+	triangles.push_back( new Triangle( F, B, D, yellow, Mirror ) );
+	triangles.push_back( new Triangle( H, F, D, yellow, Mirror ) );
 
 	// Ceiling
 	triangles.push_back( new Triangle( E, F, G, cyan, Rough ) );
