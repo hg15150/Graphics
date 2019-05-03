@@ -264,26 +264,25 @@ void LoadTestModel( vector<Item*>& triangles )
 	vec4 G(L,L,L,1);
 	vec4 H(0,L,L,1);
 
-   //Sphere
+   // //Sphere
    // triangles.push_back( new Sphere( white, Fancy, vec4( 0.5, 0.5, 0, 1 ), 0.35, 0 ) );      //Bottom right
    // triangles.push_back( new Sphere( white, Fancy, vec4( -0.5, 0.5, 0, 1 ), 0.35, 1 ) );     //Bottom left
    // triangles.push_back( new Sphere( white, Fancy, vec4( 0.5, -0.5, 0, 1 ), 0.35, 2 ) );     //Top right
-   // triangles.push_back( new Sphere( white, Fancy, vec4( 0, 0, 0, 1 ), 0.35, 3 ) );    //Top left
-
+   // triangles.push_back( new Sphere( white, Fancy, vec4( -0.5, -0.5, 0, 1 ), 0.35, 3 ) );    //Top left
 
 	// Floor:
 	triangles.push_back( new Triangle( C, B, A, green, Rough ) );
 	triangles.push_back( new Triangle( C, D, B, green, Rough ) );
 
 	// Left wall
-	// triangles.push_back( new Triangle( A, E, C, purple, Mirror ) );
-	// triangles.push_back( new Triangle( C, E, G, purple, Mirror ) );
-	triangles.push_back( new Triangle( A, E, C, purple, Mirror ) );
-	triangles.push_back( new Triangle( C, E, G, purple, Mirror ) );
+	triangles.push_back( new Triangle( A, E, C, purple, Canvas ) );
+	triangles.push_back( new Triangle( C, E, G, purple, Canvas ) );
+	// triangles.push_back( new Triangle( A, E, C, purple, Rough ) );
+	// triangles.push_back( new Triangle( C, E, G, purple, Rough ) );
 
 	// Right wall
-	triangles.push_back( new Triangle( F, B, D, yellow, Mirror ) );
-	triangles.push_back( new Triangle( H, F, D, yellow, Mirror ) );
+triangles.push_back( new Triangle( F, B, D, yellow, Rough   ) );
+	triangles.push_back( new Triangle( H, F, D, yellow, Rough ) );
 
 	// Ceiling
 	triangles.push_back( new Triangle( E, F, G, cyan, Rough ) );
@@ -330,45 +329,45 @@ void LoadTestModel( vector<Item*>& triangles )
 	G = vec4(240,165,272,1);
 	H = vec4( 82,165,225,1);
 
-	// // Front
-	// triangles.push_back( new Triangle(E,B,A,red, Rough) );
-	// triangles.push_back( new Triangle(E,F,B,red, Rough) );
-   // //
-	// // Right
-	// triangles.push_back( new Triangle(F,D,B,red, Rough) );
-	// triangles.push_back( new Triangle(F,H,D,red, Rough) );
-   // //
-	// // BACK
-	// triangles.push_back( new Triangle(H,C,D,red, Rough) );
-	// triangles.push_back( new Triangle(H,G,C,red, Rough) );
-   // //
-	// // // LEFT
-	// triangles.push_back( new Triangle(G,E,C,red, Rough) );
-	// triangles.push_back( new Triangle(E,A,C,red, Rough) );
+	// Front
+	triangles.push_back( new Triangle(E,B,A,red, Rough) );
+	triangles.push_back( new Triangle(E,F,B,red, Rough) );
    //
-	// // TOP
-	// triangles.push_back( new Triangle(G,F,E,red, Rough) );
-	// triangles.push_back( new Triangle(G,H,F,red, Rough) );
-
-   // Front
-	triangles.push_back( new Triangle(E,B,A,red, Glass) );
-	triangles.push_back( new Triangle(E,F,B,red, Glass) );
-
 	// Right
-	triangles.push_back( new Triangle(F,D,B,red, Glass) );
-	triangles.push_back( new Triangle(F,H,D,red, Glass) );
-
+	triangles.push_back( new Triangle(F,D,B,red, Rough) );
+	triangles.push_back( new Triangle(F,H,D,red, Rough) );
+   //
 	// BACK
-	triangles.push_back( new Triangle(H,C,D,red, Glass) );
-	triangles.push_back( new Triangle(H,G,C,red, Glass) );
-
-	// LEFT
-	triangles.push_back( new Triangle(G,E,C,red, Glass) );
-	triangles.push_back( new Triangle(E,A,C,red, Glass) );
+	triangles.push_back( new Triangle(H,C,D,red, Rough) );
+	triangles.push_back( new Triangle(H,G,C,red, Rough) );
+   //
+	// // LEFT
+	triangles.push_back( new Triangle(G,E,C,red, Rough) );
+	triangles.push_back( new Triangle(E,A,C,red, Rough) );
 
 	// TOP
+	triangles.push_back( new Triangle(G,F,E,red, Rough) );
+	triangles.push_back( new Triangle(G,H,F,red, Rough) );
+
+   // Front
+	// triangles.push_back( new Triangle(E,B,A,red, Glass) );
+	// triangles.push_back( new Triangle(E,F,B,red, Glass) );
+   //
+	// // Right
+	// triangles.push_back( new Triangle(F,D,B,red, Glass) );
+	// triangles.push_back( new Triangle(F,H,D,red, Glass) );
+   //
+	// // BACK
+	// triangles.push_back( new Triangle(H,C,D,red, Glass) );
+	// triangles.push_back( new Triangle(H,G,C,red, Glass) );
+   //
+	// // LEFT
+	// triangles.push_back( new Triangle(G,E,C,red, Glass) );
+	// triangles.push_back( new Triangle(E,A,C,red, Glass) );
+   //
+	// TOP
 	triangles.push_back( new Triangle(G,F,E,red, Glass) );
-	triangles.push_back( new Triangle(G,H,F,red, Glass) );
+	// triangles.push_back( new Triangle(G,H,F,red, Glass) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
@@ -384,24 +383,24 @@ void LoadTestModel( vector<Item*>& triangles )
 	H = vec4(314,330,456,1);
 
 	// Front
-	triangles.push_back( new Triangle(E,B,A,blue, Rough) );
-	triangles.push_back( new Triangle(E,F,B,blue, Rough) );
+	triangles.push_back( new Triangle(E,B,A,blue, Glass) );
+	triangles.push_back( new Triangle(E,F,B,blue, Glass) );
 
 	// Right
-	triangles.push_back( new Triangle(F,D,B,blue, Rough) );
-	triangles.push_back( new Triangle(F,H,D,blue, Rough) );
+	triangles.push_back( new Triangle(F,D,B,blue, Glass) );
+	triangles.push_back( new Triangle(F,H,D,blue, Glass) );
    //
 	// // BACK
-	triangles.push_back( new Triangle(H,C,D,blue, Rough) );
-	triangles.push_back( new Triangle(H,G,C,blue, Rough) );
+	triangles.push_back( new Triangle(H,C,D,blue, Glass) );
+	triangles.push_back( new Triangle(H,G,C,blue, Glass) );
    //
 	// // LEFT
-	triangles.push_back( new Triangle(G,E,C,blue, Rough) );
-	triangles.push_back( new Triangle(E,A,C,blue, Rough) );
+	triangles.push_back( new Triangle(G,E,C,blue, Glass) );
+	triangles.push_back( new Triangle(E,A,C,blue, Glass) );
    //
 	// // TOP
-	triangles.push_back( new Triangle(G,F,E,blue, Rough) );
-	triangles.push_back( new Triangle(G,H,F,blue, Rough) );
+	triangles.push_back( new Triangle(G,F,E,blue, Glass) );
+	triangles.push_back( new Triangle(G,H,F,blue, Glass) );
 
 
 
