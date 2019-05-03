@@ -80,6 +80,7 @@ int main( int argc, char* argv[] )
   LoadTestModel( triangles );
   vec3 white(  0.75f, 0.75f, 0.75f );
   sphere = new Sphere( white, Fancy, vec4( 0, 0, 0, 1 ), 0.35, 3 );
+  triangles.push_back(sphere);
 
     while ( Update()){
       Draw(screen);
@@ -319,20 +320,6 @@ bool ClosestIntersection(vec4 s, vec4 dir, Intersection& closestIntersection , i
    return intersectionOccurred;
 }
 
-bool SphereIntersection(Intersection i, Intersection& closestIntersection, int index, vec4& normal){
-
-   float distanceToSphere = glm::distance(i.position, sphere->center);
-   vec4 dir = normalize(i.position - sphere->center);
-
-   Intersection newIntersection;
-   bool isIntersection = ClosestIntersection(i.position, dir, newIntersection, i.index);
-
-   if(isIntersection && newIntersection.distance < distanceToSphere) return false;
-   //Therefore closest intersection is the sphere.
-   normal = sphere->computeNormal(newIntersection.position);
-   return true;
-}
-
 float Specular(Intersection i, vec4 incidentRay, vec4 reflectedRay, float r){
    if(triangles[i.index]->material.type == GlossType){
       return (
@@ -490,6 +477,31 @@ vec3 filterSphere(Intersection& i, float tmp, vec4 normal){
    return vec3(x, y, z);
 }
 
+bool SphereIntersection(Intersection i, Intersection& closestIntersection, int index, vec4& normal){
+
+
+   float distanceToSphere = glm::distance(i.position, sphere->center);
+   vec4 dir = normalize(i.position - sphere->center);
+
+   // printf("distanceToSphere: %.2f\n", distanceToSphere);
+   // printf("dir: %.2f %.2f %.2f\n", dir.x, dir.y, dir.z);
+
+
+   Intersection newIntersection;
+   bool isIntersection = ClosestIntersection(i.position, dir, newIntersection, i.index);
+
+   if(isIntersection && newIntersection.distance < distanceToSphere) {
+      // printf("false\n");
+      return false;
+   }
+   //Therefore closest intersection is the sphere.
+   normal = -dir;
+   // printf("norm: %.2f %.2f %.2f\n", normal.x, normal.y, normal.z);
+
+   // printf("true\n");
+   return true;
+}
+
 
 vec3 discoBall(Intersection& i, float tmp){
 
@@ -498,7 +510,8 @@ vec3 discoBall(Intersection& i, float tmp){
    bool isIntersectionWithSphere = SphereIntersection(i, closestIntersection, i.index, normal);
 
    if(isIntersectionWithSphere){
-      return filterSphere(closestIntersection, tmp, normal);
+      // printf("norm: %.2f %.2f %.2f\n", normal.x, normal.y, normal.z);
+      return filterSphere(i, tmp, normal);
    }
 
    return vec3(1);
@@ -508,13 +521,17 @@ vec3 discoBall(Intersection& i, float tmp){
 vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
 
    vec3 colour = vec3(0);
-//
    incidentRay = normalize(incidentRay);
 
    switch (triangles[i.index]->material.type) {
 
       case CanvasType:
+      {
+         vec3 disco = discoBall(i, tmp3);
+         // printf("%.2f %.2f %.2f\n", disco.x, disco.y, disco.z);
 
+         colour = disco * 0.9f * triangles[i.index]->colour * (DirectLight(i, incidentRay) + indirectLight);
+      }
          break;
 
       case FancyType:
