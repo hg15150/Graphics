@@ -15,7 +15,7 @@ using glm::vec4;
 using glm::mat4;
 
 
-enum MaterialType { GlossType , MirrorType, RoughType, GlassType };
+enum MaterialType { GlossType , MirrorType, RoughType, GlassType, FancyType, CanvasType };
 
 struct Material
    {
@@ -27,10 +27,12 @@ struct Material
       float emit;
    };
 
-Material Gloss = { .type = GlossType,.amb = 0.5, .diff = 0, .spec = 1 , .shi = 15 };
-Material Glass = { .type = GlassType,.amb = 0.5, .diff = 0.5, .spec = 0.2 , .shi = 15 };
-Material Rough = {  .type = RoughType,.amb = 1, .diff = 0.8, .spec = 0.0, .shi = 2};
-Material Mirror = { .type = MirrorType,.amb = 0.9, .diff = 0.9, .spec = 10, .shi = 10};
+Material Gloss = { .type = GlossType, .amb = 0.5, .diff = 0, .spec = 1 , .shi = 15 };
+Material Canvas = { .type = GlossType, .amb = 0.5, .diff = 0, .spec = 1 , .shi = 15 };
+Material Fancy = { .type = FancyType, .amb = 0.5, .diff = 0, .spec = 1 , .shi = 15 };
+Material Glass = { .type = GlassType, .amb = 0.5, .diff = 0.5, .spec = 0.2 , .shi = 15 };
+Material Rough = {  .type = RoughType, .amb = 1, .diff = 0.8, .spec = 0.0, .shi = 2};
+Material Mirror = { .type = MirrorType, .amb = 0.9, .diff = 0.9, .spec = 10, .shi = 10};
 
 struct Light
    {
@@ -52,6 +54,7 @@ public:
   virtual vec4 computeNormal(vec4 position) { return vec4(-1); }
   virtual void scale(float L){}
   virtual void rotate(mat4 rotationMatrix){}
+  virtual int getId(){}
 };
 
 
@@ -79,8 +82,9 @@ class Sphere : public Item{
 public:
    float radius;
    vec4 center;
+   int id;
 
-   Sphere( vec3 colour, Material material, vec4 c, float r ) : Item(colour, material), center(c), radius(r) {}
+   Sphere( vec3 colour, Material material, vec4 c, float r , int id) : Item(colour, material), center(c), radius(r), id(id) {}
 
    bool intersection(glm::vec4 start, glm::vec4 dir, float& t, glm::vec4& position) override {
       float t0, t1;
@@ -116,6 +120,10 @@ public:
    void rotate(mat4 rotationMatrix) override {
       center = rotationMatrix * center;
    }
+
+   int getId(){
+      return id;
+   }
 };
 
 
@@ -134,6 +142,10 @@ public:
       {
 
 	   }
+
+   int getId(){
+      return -1;
+   }
 
 	vec4 computeNormal(vec4 position) override
 	{
@@ -253,7 +265,10 @@ void LoadTestModel( vector<Item*>& triangles )
 	vec4 H(0,L,L,1);
 
    //Sphere
-   triangles.push_back( new Sphere( orange, Gloss, vec4(0,0,0,1), 0.35 ) );
+   // triangles.push_back( new Sphere( white, Fancy, vec4( 0.5, 0.5, 0, 1 ), 0.35, 0 ) );      //Bottom right
+   // triangles.push_back( new Sphere( white, Fancy, vec4( -0.5, 0.5, 0, 1 ), 0.35, 1 ) );     //Bottom left
+   // triangles.push_back( new Sphere( white, Fancy, vec4( 0.5, -0.5, 0, 1 ), 0.35, 2 ) );     //Top right
+   // triangles.push_back( new Sphere( white, Fancy, vec4( 0, 0, 0, 1 ), 0.35, 3 ) );    //Top left
 
 
 	// Floor:
@@ -312,24 +327,24 @@ void LoadTestModel( vector<Item*>& triangles )
 	// triangles.push_back( new Triangle(G,H,F,red, Rough) );
 
    // Front
-	triangles.push_back( new Triangle(E,B,A,red, Glass) );
-	triangles.push_back( new Triangle(E,F,B,red, Glass) );
-
-	// Right
-	triangles.push_back( new Triangle(F,D,B,red, Glass) );
-	triangles.push_back( new Triangle(F,H,D,red, Glass) );
-
-	// BACK
-	triangles.push_back( new Triangle(H,C,D,red, Glass) );
-	triangles.push_back( new Triangle(H,G,C,red, Glass) );
-
-	// LEFT
-	triangles.push_back( new Triangle(G,E,C,red, Glass) );
-	triangles.push_back( new Triangle(E,A,C,red, Glass) );
-
-	// TOP
-	triangles.push_back( new Triangle(G,F,E,red, Glass) );
-	triangles.push_back( new Triangle(G,H,F,red, Glass) );
+	// triangles.push_back( new Triangle(E,B,A,red, Glass) );
+	// triangles.push_back( new Triangle(E,F,B,red, Glass) );
+   //
+	// // Right
+	// triangles.push_back( new Triangle(F,D,B,red, Glass) );
+	// triangles.push_back( new Triangle(F,H,D,red, Glass) );
+   //
+	// // BACK
+	// triangles.push_back( new Triangle(H,C,D,red, Glass) );
+	// triangles.push_back( new Triangle(H,G,C,red, Glass) );
+   //
+	// // LEFT
+	// triangles.push_back( new Triangle(G,E,C,red, Glass) );
+	// triangles.push_back( new Triangle(E,A,C,red, Glass) );
+   //
+	// // TOP
+	// triangles.push_back( new Triangle(G,F,E,red, Glass) );
+	// triangles.push_back( new Triangle(G,H,F,red, Glass) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
@@ -345,24 +360,24 @@ void LoadTestModel( vector<Item*>& triangles )
 	H = vec4(314,330,456,1);
 
 	// Front
-	triangles.push_back( new Triangle(E,B,A,blue, Gloss) );
-	triangles.push_back( new Triangle(E,F,B,blue, Gloss) );
-
-	// Right
-	triangles.push_back( new Triangle(F,D,B,blue, Gloss) );
-	triangles.push_back( new Triangle(F,H,D,blue, Gloss) );
+	// triangles.push_back( new Triangle(E,B,A,blue, Rough) );
+	// triangles.push_back( new Triangle(E,F,B,blue, Rough) );
    //
-	// // BACK
-	triangles.push_back( new Triangle(H,C,D,blue, Gloss) );
-	triangles.push_back( new Triangle(H,G,C,blue, Gloss) );
-   //
-	// // LEFT
-	triangles.push_back( new Triangle(G,E,C,blue, Gloss) );
-	triangles.push_back( new Triangle(E,A,C,blue, Gloss) );
-   //
-	// // TOP
-	triangles.push_back( new Triangle(G,F,E,blue, Gloss) );
-	triangles.push_back( new Triangle(G,H,F,blue, Gloss) );
+	// // Right
+	// triangles.push_back( new Triangle(F,D,B,blue, Rough) );
+	// triangles.push_back( new Triangle(F,H,D,blue, Rough) );
+   // //
+	// // // BACK
+	// triangles.push_back( new Triangle(H,C,D,blue, Rough) );
+	// triangles.push_back( new Triangle(H,G,C,blue, Rough) );
+   // //
+	// // // LEFT
+	// triangles.push_back( new Triangle(G,E,C,blue, Rough) );
+	// triangles.push_back( new Triangle(E,A,C,blue, Rough) );
+   // //
+	// // // TOP
+	// triangles.push_back( new Triangle(G,F,E,blue, Rough) );
+	// triangles.push_back( new Triangle(G,H,F,blue, Rough) );
 
 
 
