@@ -15,7 +15,7 @@ using glm::vec4;
 using glm::mat4;
 
 
-enum MaterialType { GlassType , MirrorType, RoughType };
+enum MaterialType { GlossType , MirrorType, RoughType, GlassType, FancyType, CanvasType };
 
 struct Material
    {
@@ -27,9 +27,12 @@ struct Material
       float emit;
    };
 
-Material Glass = { .type = GlassType,.amb = 0.5, .diff = 0.5, .spec = 50 , .shi = 15 };
-Material Rough = {  .type = RoughType,.amb = 1, .diff = 0.8, .spec = 0.0, .shi = 2};
-Material Mirror = { .type = MirrorType,.amb = 0.9, .diff = 0.9, .spec = 10, .shi = 10};
+Material Gloss = { .type = GlossType, .amb = 0.5, .diff = 0, .spec = 1 , .shi = 15 };
+Material Fancy = { .type = FancyType, .amb = 0.5, .diff = 0, .spec = 1 , .shi = 15 };
+Material Glass = { .type = GlassType, .amb = 0.5, .diff = 0.5, .spec = 0.2 , .shi = 15 };
+Material Rough = {  .type = RoughType, .amb = 1, .diff = 0.8, .spec = 0.0, .shi = 2};
+Material Canvas = {  .type = CanvasType, .amb = 1, .diff = 0.8, .spec = 1, .shi = 2};
+Material Mirror = { .type = MirrorType, .amb = 0.9, .diff = 0.9, .spec = 10, .shi = 10};
 
 struct Light
    {
@@ -51,78 +54,8 @@ public:
   virtual vec4 computeNormal(vec4 position) { return vec4(-1); }
   virtual void scale(float L){}
   virtual void rotate(mat4 rotationMatrix){}
+  virtual int getId(){}
 };
-
-
-
-// class Sphere {
-// public:
-// 	glm::vec4 c;
-// 	float r;
-// 	std::vector<glm::vec4> points;
-// 	std::vector<glm::vec3> indices;
-//
-// 	uint sectorCount = 12;
-// 	uint stackCount = 12;
-//
-// 	float sectorStep = 2*PI / sectorCount;
-// 	float stackStep = PI / stackCount;
-// 	float stackAngle, sectorAngle;
-// 	float x, y, z, xz;
-//
-// 	Sphere( glm::vec4 c, float r ) : c(c), r(r)
-// 	{
-// 		ComputePoints();
-// 		ComputeIndices();
-// 	}
-//
-// 	void ComputePoints()
-// 	{
-// 		points.push_back(c + glm::vec4(0, -r, 0, 0));
-// 		for (uint i = 1; i < stackCount; i++) {
-// 			stackAngle = PI - i*stackStep;
-// 			xz = r * sinf(stackAngle);
-// 			y = r * cosf(stackAngle);
-// 			// printf("%.2f %.2f\n",xz, y );
-//
-//
-// 			for (uint j = 0; j < sectorCount; j++) {
-// 				sectorAngle = 2*PI - j * sectorStep;
-//
-// 				//vertex
-// 				x = xz * cosf(sectorAngle);
-// 				z = xz * sinf(sectorAngle);
-//
-// 				points.push_back(c + glm::vec4(x, y, z, 0));
-// 			}
-// 		}
-// 		points.push_back(c + glm::vec4(0, r, 0, 0));
-// 	}
-//
-// 	void ComputeIndices(){
-// 		for (uint j = 0; j < sectorCount-1; j++) {
-// 			indices.push_back(glm::vec3(0,j+1,j+2));
-// 		}
-// 		indices.push_back(glm::vec3(0,sectorCount,1));
-//
-// 		for (uint i = 0; i < stackCount-2; i++) {
-// 			int sectorFirst = i * sectorCount + 1;
-// 			int sectorSecond = (i+1) * sectorCount + 1;
-//
-// 			for (uint j = 0; j < sectorCount; j++) {
-// 				indices.push_back(glm::vec3(sectorFirst+j,sectorSecond+j,sectorFirst+((j+1)%sectorCount)));
-// 				indices.push_back(glm::vec3(sectorFirst+((j+1)%sectorCount),sectorSecond+j,sectorSecond+((j+1)%sectorCount)));
-// 			}
-// 		}
-//
-// 		int finalValue = (stackCount-1)*sectorCount+1;
-// 		for (uint j = 1; j < sectorCount; j++) {
-// 			indices.push_back(glm::vec3( finalValue , finalValue - (j), finalValue - (j+1) ));
-// 		}
-// 		indices.push_back(glm::vec3( finalValue, finalValue - (sectorCount), finalValue - (1) ));
-// }
-//
-// };
 
 
 bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, float &x1)
@@ -145,12 +78,13 @@ bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, f
 
 
 
-class Sphere2 : public Item{
+class Sphere : public Item{
 public:
    float radius;
-   glm::vec4 center;
+   vec4 center;
+   int id;
 
-   Sphere2( glm::vec4 c, float r, vec3 colours, Material material ) : Item(colour, material), center(c), radius(r) {}
+   Sphere( vec3 colour, Material material, vec4 c, float r , int id) : Item(colour, material), center(c), radius(r), id(id) {}
 
    bool intersection(glm::vec4 start, glm::vec4 dir, float& t, glm::vec4& position) override {
       float t0, t1;
@@ -172,8 +106,10 @@ public:
    };
 
    glm::vec4 computeNormal( glm::vec4 position) override{
-      glm::vec4 normal = glm::normalize(position - center);
-      normal.w = 1.f;
+      glm::vec4 normal = position - center;
+      glm::vec3 normal3 = glm::vec3(normal.x, normal.y, normal.z);
+      normal3 = glm::normalize(normal3);
+      normal = glm::vec4(normal3.x, normal3.y, normal3.z, 1.f);
       return normal;
    }
 
@@ -183,6 +119,10 @@ public:
 
    void rotate(mat4 rotationMatrix) override {
       center = rotationMatrix * center;
+   }
+
+   int getId(){
+      return id;
    }
 };
 
@@ -202,6 +142,10 @@ public:
       {
 
 	   }
+
+   int getId(){
+      return -1;
+   }
 
 	vec4 computeNormal(vec4 position) override
 	{
@@ -287,13 +231,14 @@ public:
 // -1 <= x <= +1
 // -1 <= y <= +1
 // -1 <= z <= +1
-void LoadTestModel( std::vector<Item*>& triangles )
+void LoadTestModel( vector<Item*>& triangles )
 {
 	using glm::vec3;
 	using glm::vec4;
 
 	// Defines colours:
 	vec3 red(    0.75f, 0.15f, 0.15f );
+	vec3 orange (    0.9f, 0.50f, 0.f );
 	vec3 yellow( 0.75f, 0.75f, 0.15f );
 	vec3 green(  0.15f, 0.75f, 0.15f );
 	vec3 cyan(   0.15f, 0.75f, 0.75f );
@@ -320,7 +265,10 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	vec4 H(0,L,L,1);
 
    //Sphere
-   triangles.push_back( new Sphere2(glm::vec4(0,0,0,1), 0.35, white, Mirror));
+   // triangles.push_back( new Sphere( white, Fancy, vec4( 0.5, 0.5, 0, 1 ), 0.35, 0 ) );      //Bottom right
+   // triangles.push_back( new Sphere( white, Fancy, vec4( -0.5, 0.5, 0, 1 ), 0.35, 1 ) );     //Bottom left
+   // triangles.push_back( new Sphere( white, Fancy, vec4( 0.5, -0.5, 0, 1 ), 0.35, 2 ) );     //Top right
+   // triangles.push_back( new Sphere( white, Fancy, vec4( 0, 0, 0, 1 ), 0.35, 3 ) );    //Top left
 
 
 	// Floor:
@@ -328,10 +276,10 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	triangles.push_back( new Triangle( C, D, B, green, Rough ) );
 
 	// Left wall
-	triangles.push_back( new Triangle( A, E, C, purple, Mirror ) );
-	triangles.push_back( new Triangle( C, E, G, purple, Mirror ) );
-	// triangles.push_back( new Triangle( A, E, C, purple, Rough ) );
-	// triangles.push_back( new Triangle( C, E, G, purple, Rough ) );
+	// triangles.push_back( new Triangle( A, E, C, purple, Mirror ) );
+	// triangles.push_back( new Triangle( C, E, G, purple, Mirror ) );
+	triangles.push_back( new Triangle( A, E, C, purple, Rough ) );
+	triangles.push_back( new Triangle( C, E, G, purple, Rough ) );
 
 	// Right wall
 	triangles.push_back( new Triangle( F, B, D, yellow, Rough ) );
@@ -344,6 +292,30 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	// Back wall
 	triangles.push_back( new Triangle( G, D, C, white, Rough ) );
 	triangles.push_back( new Triangle( G, H, D, white, Rough ) );
+
+
+
+
+
+   // // Floor:
+   // triangles.push_back( new Triangle( C, B, A, green, Canvas ) );
+   // triangles.push_back( new Triangle( C, D, B, green, Canvas ) );
+   //
+   // // Left wall
+   // triangles.push_back( new Triangle( A, E, C, purple, Canvas ) );
+   // triangles.push_back( new Triangle( C, E, G, purple, Canvas ) );
+   //
+   // // Right wall
+   // triangles.push_back( new Triangle( F, B, D, yellow, Canvas ) );
+   // triangles.push_back( new Triangle( H, F, D, yellow, Canvas ) );
+   //
+   // // Ceiling
+   // triangles.push_back( new Triangle( E, F, G, cyan, Canvas ) );
+   // triangles.push_back( new Triangle( F, H, G, cyan, Canvas ) );
+   //
+   // // Back wall
+   // triangles.push_back( new Triangle( G, D, C, white, Canvas ) );
+   // triangles.push_back( new Triangle( G, H, D, white, Canvas ) );
 
 	// ---------------------------------------------------------------------------
 	// Short block
@@ -358,45 +330,45 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	G = vec4(240,165,272,1);
 	H = vec4( 82,165,225,1);
 
-	// Front
-	triangles.push_back( new Triangle(E,B,A,red, Rough) );
-	triangles.push_back( new Triangle(E,F,B,red, Rough) );
-
-	// Front
-	triangles.push_back( new Triangle(F,D,B,red, Rough) );
-	triangles.push_back( new Triangle(F,H,D,red, Rough) );
-
-	// BACK
-	triangles.push_back( new Triangle(H,C,D,red, Rough) );
-	triangles.push_back( new Triangle(H,G,C,red, Rough) );
-
-	// LEFT
-	triangles.push_back( new Triangle(G,E,C,red, Rough) );
-	triangles.push_back( new Triangle(E,A,C,red, Rough) );
-
-	// TOP
-	triangles.push_back( new Triangle(G,F,E,red, Rough) );
-	triangles.push_back( new Triangle(G,H,F,red, Rough) );
-
-   // // Front
-	// triangles.push_back( new Triangle(E,B,A,red, Glass) );
-	// triangles.push_back( new Triangle(E,F,B,red, Glass) );
-   //
 	// // Front
-	// triangles.push_back( new Triangle(F,D,B,red, Glass) );
-	// triangles.push_back( new Triangle(F,H,D,red, Glass) );
-   //
+	// triangles.push_back( new Triangle(E,B,A,red, Rough) );
+	// triangles.push_back( new Triangle(E,F,B,red, Rough) );
+   // //
+	// // Right
+	// triangles.push_back( new Triangle(F,D,B,red, Rough) );
+	// triangles.push_back( new Triangle(F,H,D,red, Rough) );
+   // //
 	// // BACK
-	// triangles.push_back( new Triangle(H,C,D,red, Glass) );
-	// triangles.push_back( new Triangle(H,G,C,red, Glass) );
-   //
-	// // LEFT
-	// triangles.push_back( new Triangle(G,E,C,red, Glass) );
-	// triangles.push_back( new Triangle(E,A,C,red, Glass) );
+	// triangles.push_back( new Triangle(H,C,D,red, Rough) );
+	// triangles.push_back( new Triangle(H,G,C,red, Rough) );
+   // //
+	// // // LEFT
+	// triangles.push_back( new Triangle(G,E,C,red, Rough) );
+	// triangles.push_back( new Triangle(E,A,C,red, Rough) );
    //
 	// // TOP
-	// triangles.push_back( new Triangle(G,F,E,red, Glass) );
-	// triangles.push_back( new Triangle(G,H,F,red, Glass) );
+	// triangles.push_back( new Triangle(G,F,E,red, Rough) );
+	// triangles.push_back( new Triangle(G,H,F,red, Rough) );
+
+   // Front
+	triangles.push_back( new Triangle(E,B,A,red, Glass) );
+	triangles.push_back( new Triangle(E,F,B,red, Glass) );
+
+	// Right
+	triangles.push_back( new Triangle(F,D,B,red, Glass) );
+	triangles.push_back( new Triangle(F,H,D,red, Glass) );
+
+	// BACK
+	triangles.push_back( new Triangle(H,C,D,red, Glass) );
+	triangles.push_back( new Triangle(H,G,C,red, Glass) );
+
+	// LEFT
+	triangles.push_back( new Triangle(G,E,C,red, Glass) );
+	triangles.push_back( new Triangle(E,A,C,red, Glass) );
+
+	// TOP
+	triangles.push_back( new Triangle(G,F,E,red, Glass) );
+	triangles.push_back( new Triangle(G,H,F,red, Glass) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
@@ -415,19 +387,19 @@ void LoadTestModel( std::vector<Item*>& triangles )
 	triangles.push_back( new Triangle(E,B,A,blue, Rough) );
 	triangles.push_back( new Triangle(E,F,B,blue, Rough) );
 
-	// Front
+	// Right
 	triangles.push_back( new Triangle(F,D,B,blue, Rough) );
 	triangles.push_back( new Triangle(F,H,D,blue, Rough) );
-
-	// BACK
+   //
+	// // BACK
 	triangles.push_back( new Triangle(H,C,D,blue, Rough) );
 	triangles.push_back( new Triangle(H,G,C,blue, Rough) );
-
-	// LEFT
+   //
+	// // LEFT
 	triangles.push_back( new Triangle(G,E,C,blue, Rough) );
 	triangles.push_back( new Triangle(E,A,C,blue, Rough) );
-
-	// TOP
+   //
+	// // TOP
 	triangles.push_back( new Triangle(G,F,E,blue, Rough) );
 	triangles.push_back( new Triangle(G,H,F,blue, Rough) );
 
