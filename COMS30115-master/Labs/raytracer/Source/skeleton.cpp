@@ -79,7 +79,7 @@ int main( int argc, char* argv[] )
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
   LoadTestModel( triangles );
   vec3 white(  0.75f, 0.75f, 0.75f );
-  sphere = new Sphere( white, Fancy, vec4( 0, 0, 0, 1 ), 0.35, 3 );
+  sphere = new Sphere( white, Glass, vec4( 0, 0, 0, 1 ), 0.35, 3 );
   triangles.push_back(sphere);
 
     while ( Update()){
@@ -424,7 +424,15 @@ vec3 glass(Intersection i, vec4 dir, int depth) {
    return 0.8f * (reflectedColour * kr  +  refractedColour * (1 - kr));
 }
 
-vec3 filterFlavour(Intersection& i, float tmp){
+vec3 filterFlavour(Intersection& i, float tmp, vec4 normal){
+   normal = glm::abs(normal);
+   float x = tan(normal.x);
+   float y = tan(normal.y);
+   float z = tan(normal.z);
+   return vec3(x, y, z);
+}
+
+vec3 filterFlavour1(Intersection& i, float tmp){
    vec4 normal = triangles[i.index]->computeNormal(i.position);
    normal = glm::abs(normal);
    float x = tan(normal.x);
@@ -432,6 +440,7 @@ vec3 filterFlavour(Intersection& i, float tmp){
    float z = tan(normal.z);
    return vec3(x, y, z);
 }
+
 
 vec3 filterFlavourMove(Intersection& i, float tmp){
    vec4 normal = triangles[i.index]->computeNormal(i.position);
@@ -457,6 +466,14 @@ vec3 filter(Intersection& i, float tmp){
    float x = abs( sin( normal.x + tmp ) );
    float y = abs( cos( normal.y + tmp ) );
    float z = abs( tan( normal.z + tmp ) );
+   return vec3(x, y, z);
+}
+
+vec3 filter1(Intersection& i, float tmp, vec4 normal){
+   normal = glm::abs(normal);
+   float x = abs( sin( normal.x + tmp ) );
+   float y = abs( sin( normal.y + tmp ) );
+   float z = abs( sin( normal.z + tmp ) );
    return vec3(x, y, z);
 }
 
@@ -491,7 +508,7 @@ bool SphereIntersection(Intersection i, Intersection& closestIntersection, int i
    bool isIntersection = ClosestIntersection(i.position, dir, newIntersection, i.index);
 
    if(isIntersection && newIntersection.distance < distanceToSphere) {
-      // printf("false\n");
+      printf("false\n");
       return false;
    }
    //Therefore closest intersection is the sphere.
@@ -502,7 +519,6 @@ bool SphereIntersection(Intersection i, Intersection& closestIntersection, int i
    return true;
 }
 
-
 vec3 discoBall(Intersection& i, float tmp){
 
    Intersection closestIntersection;
@@ -511,7 +527,7 @@ vec3 discoBall(Intersection& i, float tmp){
 
    if(isIntersectionWithSphere){
       // printf("norm: %.2f %.2f %.2f\n", normal.x, normal.y, normal.z);
-      return filterSphere(i, tmp, normal);
+      return filter1(i, tmp, normal);
    }
 
    return vec3(1);
@@ -529,8 +545,8 @@ vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
       {
          vec3 disco = discoBall(i, tmp3);
          // printf("%.2f %.2f %.2f\n", disco.x, disco.y, disco.z);
-
-         colour = disco * 0.9f * triangles[i.index]->colour * (DirectLight(i, incidentRay) + indirectLight);
+         colour = 0.9f * triangles[i.index]->colour * (DirectLight(i, incidentRay) + indirectLight);
+         // colour = disco * 0.9f * triangles[i.index]->colour * (DirectLight(i, incidentRay) + indirectLight);
       }
          break;
 
@@ -553,7 +569,7 @@ vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
             break;
          }
 
-         colour = filterFast(i, tmp) * 0.95f * triangles[i.index]->colour * (DirectLight(i,incidentRay) + indirectLight) ;
+         colour = filter(i, tmp0) * 0.95f * triangles[i.index]->colour * (DirectLight(i,incidentRay) + indirectLight) ;
          break;
 
       case GlossType:
