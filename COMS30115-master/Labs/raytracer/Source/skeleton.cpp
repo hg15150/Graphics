@@ -138,7 +138,7 @@ bool Update()
 
   // tmpTick += 1.f;
 
-  printf("%.2f\n", tmpTick);
+  // printf("%.2f\n", tmpTick);
 
   tmp0 = abs( sin( tmpTick ) );               //Bottom right
   tmp1 = tan( tmpTick );              //Bottom left
@@ -151,6 +151,7 @@ bool Update()
 
   //Flavour
   tmpTick += quartPI;
+  tmpValue = abs(sin(tmpTick));
   // tmp0 = abs( tan ( tmp0 + 0.01f ) );               //Bottom right
   // tmp1 = abs ( sin( tmp0 + tmpTick ) );              //Bottom left
   // tmp2 = abs ( cos( tmpTick ) * sin ( tmpTick ) );  //Top right [stable for filter]
