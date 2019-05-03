@@ -13,7 +13,7 @@ EXEC=$(B_DIR)/$(FILE)
 # default build settings
 CC_OPTS=-c -pipe -O3  -ggdb -g3 
 LN_OPTS=
-CC=g++
+CC=g++ -fopenmp
 
 ########
 #       SDL options

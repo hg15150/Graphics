@@ -363,7 +363,7 @@ vec3 mirror(Intersection& i, vec4 dir, int depth){
 
 vec4 refract (vec4 dir, vec4 normal) {
   float cosi = glm::clamp(-1.f,1.f,glm::dot(dir, normal));
-  float n1 = 1.2f, n2 = 1.f;
+  float n1 = 1.517f, n2 = 1.0003f;
   if (cosi < 0) cosi = -cosi;
   else {
     std::swap(n1, n2);
@@ -376,7 +376,7 @@ vec4 refract (vec4 dir, vec4 normal) {
 
 float fresnel(vec4 I, vec4 N) {
    float cosi = glm::clamp(-1.f, 1.f, glm::dot(I, N));
-   float n1 = 1.2f;
+   float n1 = 1.517f;
    float n2 = 1.f;
    float kr;
 
@@ -430,10 +430,10 @@ vec3 glass(Intersection i, vec4 dir, int depth) {
 
    Intersection intersection;
    if(ClosestIntersection(i.position, reflection, intersection, i.index)){
-     reflectedColour = calculateColour(intersection, reflection, depth + 1);
+     reflectedColour = calculateColour(intersection, reflection, depth - 1);
    }
 
-   return 0.8f * (reflectedColour * kr  +  refractedColour * (1 - kr));
+   return 0.95f * (reflectedColour * kr  +  refractedColour * (1 - kr));
 }
 
 vec3 filterFlavour(Intersection& i, float tmp, vec4 normal){
@@ -597,7 +597,7 @@ vec3 calculateColour(Intersection& i, vec4 incidentRay, int depth){
          break;
 
       case GlassType:
-         colour = 0.9f * glass(i, incidentRay, depth);
+         colour = 0.96f * glass(i, incidentRay, depth);
          break;
    }
 
